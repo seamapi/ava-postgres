@@ -1,0 +1,33 @@
+{
+  "name": "ava-postgres",
+  "version": "0.1.0",
+  "main": "index.js",
+  "repository": "git@github.com:seamapi/ava-postgres.git",
+  "author": "Max Isom <hi@maxisom.me>",
+  "license": "MIT",
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "9.0.2",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/npm": "9.0.1",
+    "@semantic-release/release-notes-generator": "10.0.3",
+    "@types/node": "18.7.14",
+    "esbuild": "0.15.6",
+    "esbuild-register": "3.3.3",
+    "prettier": "2.7.1",
+    "semantic-release": "19.0.5",
+    "tsup": "6.2.3",
+    "typescript": "4.8.2"
+  },
+  "dependencies": {
+    "testcontainers": "8.13.0"
+  },
+  "peerDependencies": {
+    "ava": "4.3.3"
+  },
+  "scripts": {
+    "test": "ava",
+    "build": "tsup",
+    "format": "prettier -w .",
+    "format:check": "prettier --check ."
+  }
+}
