@@ -10,15 +10,24 @@
     "@semantic-release/git": "10.0.1",
     "@semantic-release/npm": "9.0.1",
     "@semantic-release/release-notes-generator": "10.0.3",
+    "@types/lodash": "4.14.184",
     "@types/node": "18.7.14",
+    "@types/object-hash": "2.2.1",
+    "@types/pg": "8.6.5",
+    "ava": "4.3.3",
+    "ava-typescript-worker": "1.0.1",
     "esbuild": "0.15.6",
     "esbuild-register": "3.3.3",
     "prettier": "2.7.1",
     "semantic-release": "19.0.5",
     "tsup": "6.2.3",
+    "type-fest": "2.19.0",
     "typescript": "4.8.2"
   },
   "dependencies": {
+    "nanoid": "4.0.0",
+    "object-hash": "3.0.0",
+    "pg": "8.8.0",
     "testcontainers": "8.13.0"
   },
   "peerDependencies": {
