@@ -15,7 +15,7 @@
     "@types/object-hash": "2.2.1",
     "@types/pg": "8.6.5",
     "ava": "4.3.3",
-    "ava-typescript-worker": "1.0.1",
+    "ava-typescript-worker": "1.1.0",
     "esbuild": "0.15.6",
     "esbuild-register": "3.3.3",
     "prettier": "2.7.1",

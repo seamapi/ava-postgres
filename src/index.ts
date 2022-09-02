@@ -32,6 +32,8 @@ export const getTestPostgresDatabaseFactory = <Params>(
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
     params?: Params
   ) => {
+    await worker.available
+
     const waitForAndHandleReply = async (
       message: SharedWorker.Plugin.PublishedMessage
     ): Promise<ConnectionDetails> => {

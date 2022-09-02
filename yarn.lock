@@ -774,10 +774,10 @@ async@^3.2.3:
   resolved "https://registry.yarnpkg.com/async/-/async-3.2.4.tgz#2d22e00f8cddeb5fde5dd33522b56d1cf569a81c"
   integrity sha512-iAB+JbDEGXhyIUavoDl9WP/Jj106Kz9DEn1DPgYw5ruDn0e3Wgi3sKFm55sASdGBNOQB8F59d9qQ7deqrHA8wQ==
 
-ava-typescript-worker@1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/ava-typescript-worker/-/ava-typescript-worker-1.0.1.tgz#e362237fc2684581d14257eae939dd1196cdfe1a"
-  integrity sha512-tSo9mMH2NdHn7RqPt3LaR1fjiHXH2NsESrNDD4MopoL81cV7b+tCNv6sGVBw7zPhLb9Nfp1Nzedgv8dUy0lSkw==
+ava-typescript-worker@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/ava-typescript-worker/-/ava-typescript-worker-1.1.0.tgz#179ab97fa694288e93072a72aee88c14279fea17"
+  integrity sha512-aJeG5hv6bRiNYlhZPSK+0c1MS+zZDLHdJCtk2pGCxkBUG3fpY6PHuOyQcYqFy/vr+caZs4uwQv+sP5wQT+YUJA==
 
 ava@4.3.3:
   version "4.3.3"
