@@ -36,6 +36,7 @@
   },
   "scripts": {
     "test": "ava",
+    "test:types": "tsc --noEmit",
     "build": "tsup",
     "format": "prettier -w .",
     "format:check": "prettier --check ."
