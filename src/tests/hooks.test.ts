@@ -56,33 +56,3 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
   // Should have created two templates
   t.is(await countDatabaseTemplates(pool), 2)
 })
-
-test("afterTemplateIsBaked", async (t) => {
-  let wasHookCalled = false
-
-  type TestFactoryParams = {
-    tableName: string
-  }
-
-  const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
-    key: "afterTemplateIsBaked",
-    hooks: {
-      afterTemplateIsBaked: async ({ pool }, { tableName }) => {
-        wasHookCalled = true
-        await pool.query(
-          `CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`
-        )
-      },
-    },
-  })
-
-  const [{ pool }] = await Promise.all([
-    getTestServer({ tableName: "foo" }),
-    getTestServer({ tableName: "foo" }),
-  ])
-
-  t.true(wasHookCalled)
-  await t.notThrowsAsync(async () => await pool.query('SELECT * FROM "foo"'))
-  // At least one template is always created (since we don't know yet what params will be used)
-  t.is(await countDatabaseTemplates(pool), 1)
-})

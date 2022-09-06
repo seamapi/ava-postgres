@@ -5,7 +5,6 @@ import hash from "object-hash"
 import {
   InitialWorkerData,
   MessageToWorker,
-  RequestDatabaseFromWorkerMessage,
   WorkerMessage,
 } from "./internal-types"
 import getRandomDatabaseName from "./lib/get-random-database-name"
@@ -38,17 +37,14 @@ export class Worker {
     if (message.data.type === "GET_TEST_DATABASE") {
       // Get template name
       const paramsHash = hash(message.data.params ?? null)
-      // (Avoids race conditions where two identical templates get built)
       let neededToCreateTemplate = false
+      // (Mutex avoids race conditions where two identical templates get built)
       await this.getOrCreateTemplateNameMutex.runExclusive(() => {
         if (!this.paramsHashToTemplateCreationPromise.has(paramsHash)) {
           neededToCreateTemplate = true
           this.paramsHashToTemplateCreationPromise.set(
             paramsHash,
-            this.createTemplate(
-              message,
-              (message.data as RequestDatabaseFromWorkerMessage).params
-            )
+            this.createTemplate(message)
           )
         }
       })
@@ -82,8 +78,7 @@ export class Worker {
   }
 
   private async createTemplate(
-    message: SharedWorker.ReceivedMessage<WorkerMessage>,
-    params: RequestDatabaseFromWorkerMessage["params"]
+    message: SharedWorker.ReceivedMessage<WorkerMessage>
   ) {
     const databaseName = getRandomDatabaseName()
 

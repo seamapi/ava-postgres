@@ -15,6 +15,7 @@ import {
 } from "./public-types"
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
+import { pick } from "lodash"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
   connectionDetailsFromWorker: ConnectionDetailsFromWorker
@@ -75,14 +76,9 @@ export const getTestPostgresDatabaseFactory = <
           } as MessageToWorker)
         )
       } else if (replyData.type === "GOT_DATABASE") {
-        const connectionDetails = mapWorkerConnectionDetailsToConnectionDetails(
+        return mapWorkerConnectionDetailsToConnectionDetails(
           replyData.connectionDetails
         )
-
-        if (options?.hooks?.afterTemplateIsBaked) {
-          await options.hooks.afterTemplateIsBaked(connectionDetails, params)
-        }
-        return connectionDetails
       }
 
       throw new Error("Unexpected reply", replyData)

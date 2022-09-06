@@ -36,10 +36,6 @@ export interface GetTestPostgresDatabaseFactoryOptions<
           connection: ConnectionDetails,
           params: Params
         ) => Promise<void>
-        afterTemplateIsBaked?: (
-          connection: ConnectionDetails,
-          params: Params
-        ) => Promise<void>
       }
 }
 
