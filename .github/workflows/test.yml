@@ -6,6 +6,10 @@ jobs:
   npm_test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     name: Run NPM Test
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+        postgres-version: [12, 13, 14]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -13,9 +17,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: 16
+          node-version: ${{ matrix.node-version }}
           cache: "yarn"
       - name: Install dependencies
         run: yarn install
       - name: Test
-        run: yarn test
+        run: yarn test -T 1m
+        env:
+          POSTGRES_VERSION: ${{ matrix.postgres-version }}

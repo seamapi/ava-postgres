@@ -10,6 +10,7 @@ test("beforeTemplateIsBaked", async (t) => {
   }
 
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
+    postgresVersion: process.env.POSTGRES_VERSION,
     key: "beforeTemplateIsBaked",
     hooks: {
       beforeTemplateIsBaked: async ({
@@ -36,6 +37,7 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
   }
 
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
+    postgresVersion: process.env.POSTGRES_VERSION,
     key: "beforeTemplateIsBakedDedupeParams",
     hooks: {
       beforeTemplateIsBaked: async ({

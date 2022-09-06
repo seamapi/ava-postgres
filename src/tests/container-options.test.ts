@@ -12,6 +12,7 @@ test("bind mounts", async (t) => {
   await fs.writeFile(testSQLScript2Path, "CREATE TABLE bar ();")
 
   const getTestPostgresDatabase = getTestPostgresDatabaseFactory({
+    postgresVersion: process.env.POSTGRES_VERSION,
     key: "bindMounts",
     container: {
       bindMounts: [
