@@ -40,7 +40,6 @@ export const getTestPostgresDatabaseFactory = <
     filename: new URL(
       `file:${path.resolve(__dirname, "worker-wrapper.ts")}#${hash({
         initialData,
-        // todo: add test to make sure workers are de-duped
         key: options?.key,
       })}`
     ),

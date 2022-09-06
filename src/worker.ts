@@ -172,8 +172,7 @@ export class Worker {
 
     return {
       connectionString: externalDatabaseUrl,
-      // todo: populate
-      connectionStringDocker: "",
+      connectionStringDocker: `postgresql://postgres:@${container.getName()}:5432/${databaseName}`,
 
       host: container.getHost(),
       port: container.getMappedPort(5432),
