@@ -22,6 +22,6 @@ jobs:
       - name: Install dependencies
         run: yarn install
       - name: Test
-        run: yarn test
+        run: yarn test -T 1m
         env:
           POSTGRES_VERSION: ${{ matrix.postgres-version }}
