@@ -5,7 +5,7 @@ import { countDatabaseTemplates } from "./utils/count-database-templates"
 test("beforeTemplateIsBaked", async (t) => {
   let wasHookCalled = false
 
-  interface TestFactoryParams {
+  type TestFactoryParams = {
     tableName: string
   }
 
@@ -28,7 +28,7 @@ test("beforeTemplateIsBaked", async (t) => {
 })
 
 test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
-  interface TestFactoryParams {
+  type TestFactoryParams = {
     tableName: string
   }
 
@@ -60,7 +60,7 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
 test("afterTemplateIsBaked", async (t) => {
   let wasHookCalled = false
 
-  interface TestFactoryParams {
+  type TestFactoryParams = {
     tableName: string
   }
 

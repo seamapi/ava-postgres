@@ -14,6 +14,7 @@ import {
   GetTestPostgresDatabaseFactoryOptions,
 } from "./public-types"
 import { Pool } from "pg"
+import { JsonObject } from "type-fest"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
   connectionDetailsFromWorker: ConnectionDetailsFromWorker
@@ -24,7 +25,9 @@ const mapWorkerConnectionDetailsToConnectionDetails = (
   }),
 })
 
-export const getTestPostgresDatabaseFactory = <Params = never>(
+export const getTestPostgresDatabaseFactory = <
+  Params extends JsonObject = never
+>(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
 ) => {
   const initialData: InitialWorkerData = {
