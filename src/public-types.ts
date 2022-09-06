@@ -18,7 +18,9 @@ export interface ConnectionDetails {
 export interface GetTestPostgresDatabaseFactoryOptions<
   Params extends JsonObject
 > {
-  // Any Docker image tag
+  /**
+   * Any tag of the official `postgres` image.
+   */
   postgresVersion?: string
   container?: {
     bindMounts?: {
@@ -27,7 +29,9 @@ export interface GetTestPostgresDatabaseFactoryOptions<
       mode?: BindMode
     }[]
   }
-  // This should be unnecessary 99% of the time
+  /**
+   * Test workers will be de-duped by this key. You probably don't need to set this.
+   */
   key?: string
   hooks?: {
     beforeTemplateIsBaked?: (options: {
