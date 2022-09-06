@@ -9,6 +9,8 @@ export interface InitialWorkerData {
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
 }
 
+export type ConnectionDetailsFromWorker = Except<ConnectionDetails, "pool">
+
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
   params?: JsonObject
@@ -16,18 +18,16 @@ export interface RequestDatabaseFromWorkerMessage {
 
 export interface RequestBeforeTemplateIsBakedHookToBeRunMessage {
   type: "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED"
-  requestId: string
-  connectionDetails: Except<ConnectionDetails, "pool">
+  connectionDetails: ConnectionDetailsFromWorker
 }
 
 export interface FinishedRunningBeforeTemplateIsBakedHookMessage {
   type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
-  requestId: string
 }
 
 export interface GotDatabaseMessage {
   type: "GOT_DATABASE"
-  connectionDetails: Except<ConnectionDetails, "pool">
+  connectionDetails: ConnectionDetailsFromWorker
 }
 
 export type MessageToWorker =

@@ -27,10 +27,12 @@ export interface GetTestPostgresDatabaseFactoryOptions<
       mode?: BindMode
     }[]
   }
+  // This should be unnecessary 99% of the time
+  key?: string
   hooks?: {
     beforeTemplateIsBaked?: (
       connection: ConnectionDetails,
-      params?: Params
+      params: Params
     ) => Promise<void>
     afterTemplateIsBaked?: (
       connection: ConnectionDetails,
@@ -40,5 +42,5 @@ export interface GetTestPostgresDatabaseFactoryOptions<
 }
 
 export type GetTestPostgresDatabase<Params> = (
-  params?: Params
+  ...args: Params extends never ? [never] : [Params]
 ) => Promise<ConnectionDetails>

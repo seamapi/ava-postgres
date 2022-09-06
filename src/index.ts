@@ -3,6 +3,7 @@ import hash from "object-hash"
 import path from "node:path"
 import { registerSharedTypeScriptWorker } from "ava-typescript-worker"
 import {
+  ConnectionDetailsFromWorker,
   InitialWorkerData,
   MessageFromWorker,
   MessageToWorker,
@@ -14,7 +15,16 @@ import {
 } from "./public-types"
 import { Pool } from "pg"
 
-export const getTestPostgresDatabaseFactory = <Params>(
+const mapWorkerConnectionDetailsToConnectionDetails = (
+  connectionDetailsFromWorker: ConnectionDetailsFromWorker
+): ConnectionDetails => ({
+  ...connectionDetailsFromWorker,
+  pool: new Pool({
+    connectionString: connectionDetailsFromWorker.connectionString,
+  }),
+})
+
+export const getTestPostgresDatabaseFactory = <Params = never>(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
 ) => {
   const initialData: InitialWorkerData = {
@@ -24,13 +34,17 @@ export const getTestPostgresDatabaseFactory = <Params>(
 
   const worker = registerSharedTypeScriptWorker({
     filename: new URL(
-      `file:${path.resolve(__dirname, "worker.ts")}#${hash(initialData)}`
+      `file:${path.resolve(__dirname, "worker-wrapper.ts")}#${hash({
+        initialData,
+        // todo: add test to make sure workers are de-duped
+        key: options?.key,
+      })}`
     ),
     initialData: initialData as any,
   })
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
-    params?: Params
+    params
   ) => {
     await worker.available
 
@@ -42,30 +56,25 @@ export const getTestPostgresDatabaseFactory = <Params>(
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
         if (options?.hooks?.beforeTemplateIsBaked) {
-          await options.hooks.beforeTemplateIsBaked(
-            {
-              ...replyData.connectionDetails,
-              pool: new Pool({
-                connectionString: replyData.connectionDetails.connectionString,
-              }),
-            },
-            params
-          )
+          const connectionDetails =
+            mapWorkerConnectionDetailsToConnectionDetails(
+              replyData.connectionDetails
+            )
+
+          await options.hooks.beforeTemplateIsBaked(connectionDetails, params)
+
+          await connectionDetails.pool.end()
         }
 
         return waitForAndHandleReply(
-          worker.publish({
+          reply.value.reply({
             type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED",
-            requestId: replyData.requestId,
           } as MessageToWorker)
         )
       } else if (replyData.type === "GOT_DATABASE") {
-        const connectionDetails = {
-          ...replyData.connectionDetails,
-          pool: new Pool({
-            connectionString: replyData.connectionDetails.connectionString,
-          }),
-        }
+        const connectionDetails = mapWorkerConnectionDetailsToConnectionDetails(
+          replyData.connectionDetails
+        )
 
         if (options?.hooks?.afterTemplateIsBaked) {
           await options.hooks.afterTemplateIsBaked(connectionDetails, params)
