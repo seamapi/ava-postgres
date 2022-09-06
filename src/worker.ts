@@ -189,7 +189,6 @@ export class Worker {
         "full_page_writes=off",
       ])
       .withTmpFs({ "/var/lib/postgresql/data": "rw" })
-      // todo: add startup check to speed this up?
       .withStartupTimeout(120_000)
 
     if (this.initialData.containerOptions?.bindMounts) {
