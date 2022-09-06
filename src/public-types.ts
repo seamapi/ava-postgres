@@ -29,16 +29,18 @@ export interface GetTestPostgresDatabaseFactoryOptions<
   }
   // This should be unnecessary 99% of the time
   key?: string
-  hooks?: {
-    beforeTemplateIsBaked?: (
-      connection: ConnectionDetails,
-      params: Params
-    ) => Promise<void>
-    afterTemplateIsBaked?: (
-      connection: ConnectionDetails,
-      params?: Params
-    ) => Promise<void>
-  }
+  hooks?: Params extends never
+    ? never
+    : {
+        beforeTemplateIsBaked?: (
+          connection: ConnectionDetails,
+          params: Params
+        ) => Promise<void>
+        afterTemplateIsBaked?: (
+          connection: ConnectionDetails,
+          params: Params
+        ) => Promise<void>
+      }
 }
 
 export type GetTestPostgresDatabase<Params> = (
