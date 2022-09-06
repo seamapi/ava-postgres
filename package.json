@@ -1,5 +1,21 @@
 {
   "name": "ava-postgres",
+  "keywords": [
+    "🐘",
+    "postgres",
+    "ava",
+    "test",
+    "testing",
+    "database",
+    "db",
+    "sql",
+    "testcontainers",
+    "container",
+    "template"
+  ],
+  "files": [
+    "dist"
+  ],
   "version": "0.1.0",
   "main": "index.js",
   "repository": "git@github.com:seamapi/ava-postgres.git",
