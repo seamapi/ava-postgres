@@ -10,13 +10,12 @@ import {
 import getRandomDatabaseName from "./lib/get-random-database-name"
 import { SharedWorker } from "ava/plugin"
 
-// todo: delete database when done
-
 export class Worker {
   private paramsHashToTemplateCreationPromise = new Map<
     string,
     ReturnType<typeof this.createTemplate>
   >()
+  private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
 
   private startContainerPromise: ReturnType<typeof this.startContainer>
@@ -26,6 +25,10 @@ export class Worker {
   }
 
   public async handleTestWorker(testWorker: SharedWorker.TestWorker<unknown>) {
+    testWorker.teardown(async () => {
+      await this.handleTestWorkerTeardown(testWorker)
+    })
+
     for await (const message of testWorker.subscribe()) {
       await this.handleMessage(message as any)
     }
@@ -58,6 +61,12 @@ export class Worker {
       await postgresClient.query(
         `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
       )
+      this.createdDatabasesByTestWorkerId.set(
+        message.testWorker.id,
+        (
+          this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
+        ).concat(databaseName)
+      )
 
       if (neededToCreateTemplate) {
         lastMessageFromTemplateCreation.value.reply({
@@ -75,6 +84,23 @@ export class Worker {
     }
 
     throw new Error(`Unknown message: ${JSON.stringify(message.data)}`)
+  }
+
+  private async handleTestWorkerTeardown(
+    testWorker: SharedWorker.TestWorker<unknown>
+  ) {
+    const databases = this.createdDatabasesByTestWorkerId.get(testWorker.id)
+
+    if (databases) {
+      const { postgresClient } = await this.startContainerPromise
+
+      await Promise.all(
+        databases.map(async (database) => {
+          await this.forceDisconnectClientsFrom(database)
+          await postgresClient.query(`DROP DATABASE ${database}`)
+        })
+      )
+    }
   }
 
   private async createTemplate(
@@ -99,14 +125,7 @@ export class Worker {
     }
 
     // Disconnect any clients
-    await postgresClient.query(
-      `REVOKE CONNECT ON DATABASE ${databaseName} FROM public`
-    )
-    await postgresClient.query(`
-      SELECT pid, pg_terminate_backend(pid)
-      FROM pg_stat_activity
-      WHERE datname = '${databaseName}' AND pid <> pg_backend_pid();
-      `)
+    await this.forceDisconnectClientsFrom(databaseName)
 
     // Convert database to template
     await postgresClient.query(
@@ -117,6 +136,20 @@ export class Worker {
       templateName: databaseName,
       lastMessage: reply,
     }
+  }
+
+  private async forceDisconnectClientsFrom(databaseName: string) {
+    const { postgresClient } = await this.startContainerPromise
+
+    await postgresClient.query(
+      `REVOKE CONNECT ON DATABASE ${databaseName} FROM public`
+    )
+
+    await postgresClient.query(`
+      SELECT pid, pg_terminate_backend(pid)
+      FROM pg_stat_activity
+      WHERE datname = '${databaseName}' AND pid <> pg_backend_pid();
+      `)
   }
 
   private async getConnectionDetails(databaseName: string) {

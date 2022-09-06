@@ -1,8 +1,6 @@
 import { SharedWorker } from "ava/plugin"
 import { Worker } from "./worker"
 
-// todo: warn if too many templates
-
 const workerWrapper = async (protocol: SharedWorker.Protocol) => {
   const { initialData } = protocol
 
