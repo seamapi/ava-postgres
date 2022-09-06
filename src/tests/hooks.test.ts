@@ -12,7 +12,10 @@ test("beforeTemplateIsBaked", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     key: "beforeTemplateIsBaked",
     hooks: {
-      beforeTemplateIsBaked: async ({ pool }, { tableName }) => {
+      beforeTemplateIsBaked: async ({
+        connection: { pool },
+        params: { tableName },
+      }) => {
         wasHookCalled = true
         await pool.query(
           `CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`
@@ -35,7 +38,10 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     key: "beforeTemplateIsBakedDedupeParams",
     hooks: {
-      beforeTemplateIsBaked: async ({ pool }, { tableName }) => {
+      beforeTemplateIsBaked: async ({
+        connection: { pool },
+        params: { tableName },
+      }) => {
         await pool.query(
           `CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`
         )

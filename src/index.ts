@@ -55,7 +55,7 @@ export const getTestPostgresDatabaseFactory = <
     const waitForAndHandleReply = async (
       message: SharedWorker.Plugin.PublishedMessage
     ): Promise<ConnectionDetails> => {
-      const reply = await message.replies().next()
+      let reply = await message.replies().next()
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
@@ -65,7 +65,28 @@ export const getTestPostgresDatabaseFactory = <
               replyData.connectionDetails
             )
 
-          await options.hooks.beforeTemplateIsBaked(connectionDetails, params)
+          await options.hooks.beforeTemplateIsBaked({
+            params: params as any,
+            connection: connectionDetails,
+            containerExec: async (command) => {
+              const request = reply.value.reply({
+                type: "EXEC_COMMAND_IN_CONTAINER",
+                command,
+              })
+
+              reply = await request.replies().next()
+
+              if (
+                reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
+              ) {
+                throw new Error(
+                  "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
+                )
+              }
+
+              return reply.value.data.result
+            },
+          })
 
           await connectionDetails.pool.end()
         }
@@ -81,7 +102,7 @@ export const getTestPostgresDatabaseFactory = <
         )
       }
 
-      throw new Error("Unexpected reply", replyData)
+      throw new Error(`Unexpected message type: ${replyData.type}`)
     }
 
     return waitForAndHandleReply(

@@ -1,6 +1,6 @@
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
-import { BindMode } from "testcontainers/dist/docker/types"
+import { BindMode, ExecResult } from "testcontainers/dist/docker/types"
 
 export interface ConnectionDetails {
   connectionString: string
@@ -29,14 +29,13 @@ export interface GetTestPostgresDatabaseFactoryOptions<
   }
   // This should be unnecessary 99% of the time
   key?: string
-  hooks?: Params extends never
-    ? never
-    : {
-        beforeTemplateIsBaked?: (
-          connection: ConnectionDetails,
-          params: Params
-        ) => Promise<void>
-      }
+  hooks?: {
+    beforeTemplateIsBaked?: (options: {
+      connection: ConnectionDetails
+      params: Params
+      containerExec: (command: string[]) => Promise<ExecResult>
+    }) => Promise<void>
+  }
 }
 
 export type GetTestPostgresDatabase<Params> = (

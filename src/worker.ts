@@ -4,6 +4,7 @@ import { Mutex } from "async-mutex"
 import hash from "object-hash"
 import {
   InitialWorkerData,
+  MessageFromWorker,
   MessageToWorker,
   WorkerMessage,
 } from "./internal-types"
@@ -109,7 +110,7 @@ export class Worker {
     const databaseName = getRandomDatabaseName()
 
     // Create database
-    const { postgresClient } = await this.startContainerPromise
+    const { postgresClient, container } = await this.startContainerPromise
     await postgresClient.query(`CREATE DATABASE ${databaseName};`)
 
     const msg = message.reply({
@@ -117,11 +118,22 @@ export class Worker {
       connectionDetails: await this.getConnectionDetails(databaseName),
     })
 
-    const reply = await msg.replies().next()
-    const replyValue = reply.value.data as MessageToWorker
+    let reply = await msg.replies().next()
 
-    if (replyValue.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-      throw new Error(`Unexpected reply: ${JSON.stringify(replyValue)}`)
+    while (
+      reply.value.data.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
+    ) {
+      const replyValue = reply.value.data as MessageToWorker
+
+      if (replyValue.type === "EXEC_COMMAND_IN_CONTAINER") {
+        const result = await container.exec(replyValue.command)
+        const message = reply.value.reply({
+          type: "EXEC_COMMAND_IN_CONTAINER_RESULT",
+          result,
+        } as MessageFromWorker)
+
+        reply = await message.replies().next()
+      }
     }
 
     // Disconnect any clients
