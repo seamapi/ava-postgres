@@ -2,7 +2,9 @@ import test from "ava"
 import { Pool } from "pg"
 import { getTestPostgresDatabaseFactory } from "~/index"
 
-const getTestServer = getTestPostgresDatabaseFactory()
+const getTestServer = getTestPostgresDatabaseFactory({
+  postgresVersion: process.env.POSTGRES_VERSION,
+})
 
 test("gets a valid Pool instance", async (t) => {
   const { pool } = await getTestServer()
