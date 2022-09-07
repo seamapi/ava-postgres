@@ -15,7 +15,6 @@ import {
 } from "./public-types"
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
-import { pick } from "lodash"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
   connectionDetailsFromWorker: ConnectionDetailsFromWorker
@@ -58,13 +57,27 @@ export const getTestPostgresDatabaseFactory = <
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-        if (options?.hooks?.beforeTemplateIsBaked) {
+        if (options?.beforeTemplateIsBaked) {
           const connectionDetails =
             mapWorkerConnectionDetailsToConnectionDetails(
               replyData.connectionDetails
             )
 
-          await options.hooks.beforeTemplateIsBaked({
+          // Ignore if the pool is terminated by the shared worker
+          // (This happens in CI for some reason even though we drain the pool first.)
+          connectionDetails.pool.on("error", (error) => {
+            if (
+              error.message.includes(
+                "terminating connection due to administrator command"
+              )
+            ) {
+              return
+            }
+
+            throw error
+          })
+
+          await options.beforeTemplateIsBaked({
             params: params as any,
             connection: connectionDetails,
             containerExec: async (command) => {

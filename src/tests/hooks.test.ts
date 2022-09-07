@@ -12,16 +12,12 @@ test("beforeTemplateIsBaked", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
     key: "beforeTemplateIsBaked",
-    hooks: {
-      beforeTemplateIsBaked: async ({
-        connection: { pool },
-        params: { tableName },
-      }) => {
-        wasHookCalled = true
-        await pool.query(
-          `CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`
-        )
-      },
+    beforeTemplateIsBaked: async ({
+      connection: { pool },
+      params: { tableName },
+    }) => {
+      wasHookCalled = true
+      await pool.query(`CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`)
     },
   })
 
@@ -39,15 +35,11 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
     key: "beforeTemplateIsBakedDedupeParams",
-    hooks: {
-      beforeTemplateIsBaked: async ({
-        connection: { pool },
-        params: { tableName },
-      }) => {
-        await pool.query(
-          `CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`
-        )
-      },
+    beforeTemplateIsBaked: async ({
+      connection: { pool },
+      params: { tableName },
+    }) => {
+      await pool.query(`CREATE TABLE "${tableName}" ("id" SERIAL PRIMARY KEY)`)
     },
   })
 
