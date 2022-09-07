@@ -179,7 +179,7 @@ export class Worker {
       connectionString: externalDatabaseUrl,
       connectionStringDocker: `postgresql://postgres:@${container
         .getName()
-        .replaceAll("/", "")}:5432/${databaseName}`,
+        .replace("/", "")}:5432/${databaseName}`,
       networkNameDocker: network.getName(),
 
       host: container.getHost(),
