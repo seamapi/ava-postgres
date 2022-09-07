@@ -3,6 +3,7 @@ import { GenericContainer } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
 import {
+  GotDatabaseMessage,
   InitialWorkerData,
   MessageFromWorker,
   MessageToWorker,
@@ -52,8 +53,11 @@ export class Worker {
           )
         }
       })
-      const { templateName, lastMessage: lastMessageFromTemplateCreation } =
-        await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
+      const {
+        templateName,
+        beforeTemplateIsBakedResult,
+        lastMessage: lastMessageFromTemplateCreation,
+      } = await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
 
       // Create database using template
       const { postgresClient } = await this.startContainerPromise
@@ -69,16 +73,16 @@ export class Worker {
         ).concat(databaseName)
       )
 
+      const gotDatabaseMessage: GotDatabaseMessage = {
+        type: "GOT_DATABASE",
+        connectionDetails: await this.getConnectionDetails(databaseName),
+        beforeTemplateIsBakedResult,
+      }
+
       if (neededToCreateTemplate) {
-        lastMessageFromTemplateCreation.value.reply({
-          type: "GOT_DATABASE",
-          connectionDetails: await this.getConnectionDetails(databaseName),
-        })
+        lastMessageFromTemplateCreation.value.reply(gotDatabaseMessage)
       } else {
-        message.reply({
-          type: "GOT_DATABASE",
-          connectionDetails: await this.getConnectionDetails(databaseName),
-        })
+        message.reply(gotDatabaseMessage)
       }
 
       return
@@ -146,6 +150,7 @@ export class Worker {
 
     return {
       templateName: databaseName,
+      beforeTemplateIsBakedResult: reply.value.data.result,
       lastMessage: reply,
     }
   }

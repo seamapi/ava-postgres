@@ -24,6 +24,7 @@ export interface RequestBeforeTemplateIsBakedHookToBeRunMessage {
 
 export interface FinishedRunningBeforeTemplateIsBakedHookMessage {
   type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
+  result: any
 }
 
 export interface ExecCommandInContainerMessage {
@@ -39,6 +40,7 @@ export interface ExecCommandInContainerResultMessage {
 export interface GotDatabaseMessage {
   type: "GOT_DATABASE"
   connectionDetails: ConnectionDetailsFromWorker
+  beforeTemplateIsBakedResult: any
 }
 
 export type MessageToWorker =

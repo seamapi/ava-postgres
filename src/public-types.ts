@@ -37,9 +37,13 @@ export interface GetTestPostgresDatabaseFactoryOptions<
     connection: ConnectionDetails
     params: Params
     containerExec: (command: string[]) => Promise<ExecResult>
-  }) => Promise<void>
+  }) => Promise<any>
+}
+
+export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
+  beforeTemplateIsBakedResult: any
 }
 
 export type GetTestPostgresDatabase<Params> = (
   ...args: Params extends never ? [never] : [Params]
-) => Promise<ConnectionDetails>
+) => Promise<GetTestPostgresDatabaseResult>

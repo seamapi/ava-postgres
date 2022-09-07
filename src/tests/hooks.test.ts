@@ -56,3 +56,29 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
   // Should have created two templates
   t.is(await countDatabaseTemplates(pool), 2)
 })
+
+test("beforeTemplateIsBaked (get result of hook)", async (t) => {
+  type TestFactoryParams = {
+    tableName: string
+  }
+
+  const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    key: "beforeTemplateIsBakedHookResult",
+    beforeTemplateIsBaked: async ({ params: { tableName } }) => {
+      return { tableName }
+    },
+  })
+
+  t.like(await getTestServer({ tableName: "foo" }), {
+    beforeTemplateIsBakedResult: { tableName: "foo" },
+  })
+
+  t.like(await getTestServer({ tableName: "bar" }), {
+    beforeTemplateIsBakedResult: { tableName: "bar" },
+  })
+
+  t.like(await getTestServer({ tableName: "foo" }), {
+    beforeTemplateIsBakedResult: { tableName: "foo" },
+  })
+})
