@@ -64,6 +64,20 @@ export const getTestPostgresDatabaseFactory = <
               replyData.connectionDetails
             )
 
+          // Ignore if the pool is terminated by the shared worker
+          // (This happens in CI for some reason even though we drain the pool first.)
+          connectionDetails.pool.on("error", (error) => {
+            if (
+              error.message.includes(
+                "terminating connection due to administrator command"
+              )
+            ) {
+              return
+            }
+
+            throw error
+          })
+
           await options.beforeTemplateIsBaked({
             params: params as any,
             connection: connectionDetails,
