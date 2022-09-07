@@ -5,6 +5,7 @@ import { BindMode, ExecResult } from "testcontainers/dist/docker/types"
 export interface ConnectionDetails {
   connectionString: string
   connectionStringDocker: string
+  networkNameDocker: string
 
   host: string
   port: number
