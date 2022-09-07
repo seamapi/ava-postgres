@@ -26,24 +26,22 @@ test("bind mounts", async (t) => {
         },
       ],
     },
-    hooks: {
-      beforeTemplateIsBaked: async ({
-        connection: { username, database },
-        containerExec,
-      }) => {
-        const loadSQLFile = async (fileName: string) => {
-          const { exitCode } = await containerExec(
-            `psql -U ${username} -d ${database} -f ${fileName}`.split(" ")
-          )
+    beforeTemplateIsBaked: async ({
+      connection: { username, database },
+      containerExec,
+    }) => {
+      const loadSQLFile = async (fileName: string) => {
+        const { exitCode } = await containerExec(
+          `psql -U ${username} -d ${database} -f ${fileName}`.split(" ")
+        )
 
-          if (exitCode !== 0) {
-            throw new Error(`Failed to load test schema`)
-          }
+        if (exitCode !== 0) {
+          throw new Error(`Failed to load test schema`)
         }
+      }
 
-        await loadSQLFile("/test1.sql")
-        await loadSQLFile("/test2.sql")
-      },
+      await loadSQLFile("/test1.sql")
+      await loadSQLFile("/test2.sql")
     },
   })
 

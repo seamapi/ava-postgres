@@ -58,13 +58,13 @@ export const getTestPostgresDatabaseFactory = <
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-        if (options?.hooks?.beforeTemplateIsBaked) {
+        if (options?.beforeTemplateIsBaked) {
           const connectionDetails =
             mapWorkerConnectionDetailsToConnectionDetails(
               replyData.connectionDetails
             )
 
-          await options.hooks.beforeTemplateIsBaked({
+          await options.beforeTemplateIsBaked({
             params: params as any,
             connection: connectionDetails,
             containerExec: async (command) => {
