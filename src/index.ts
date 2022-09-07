@@ -15,7 +15,6 @@ import {
 } from "./public-types"
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
-import { pick } from "lodash"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
   connectionDetailsFromWorker: ConnectionDetailsFromWorker
