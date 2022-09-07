@@ -57,7 +57,6 @@ type GetTestDatabaseParams = {
 }
 
 export const getTestDatabase = getTestPostgresDatabaseFactory<GetTestDatabaseParams>({
-  hooks: {
     beforeTemplateIsBaked: async ({
         connection: { pool },
         params: { shouldMigrate, shouldSeed },
@@ -69,7 +68,6 @@ export const getTestDatabase = getTestPostgresDatabaseFactory<GetTestDatabasePar
       if (shouldSeed) {
         await pool.query("INSERT INTO foo VALUES (1)")
       }
-  }
 })
 ```
 
@@ -111,19 +109,17 @@ const getTestPostgresDatabase = getTestPostgresDatabaseFactory({
       },
     ],
   },
-  hooks: {
-    beforeTemplateIsBaked: async ({
-      connection: { username, database },
-      containerExec,
-    }) => {
-      const { exitCode } = await containerExec(
-        `psql -U ${username} -d ${database} -f /test.sql`.split(" ")
-      )
+  beforeTemplateIsBaked: async ({
+    connection: { username, database },
+    containerExec,
+  }) => {
+    const { exitCode } = await containerExec(
+      `psql -U ${username} -d ${database} -f /test.sql`.split(" ")
+    )
 
-      if (exitCode !== 0) {
-        throw new Error(`Failed to load test file`)
-      }
-    },
+    if (exitCode !== 0) {
+      throw new Error(`Failed to load test file`)
+    }
   },
 })
 ```
