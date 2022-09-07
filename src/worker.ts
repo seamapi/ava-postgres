@@ -1,5 +1,5 @@
 import pg from "pg"
-import { GenericContainer } from "testcontainers"
+import { GenericContainer, Network } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
 import {
@@ -170,7 +170,7 @@ export class Worker {
   }
 
   private async getConnectionDetails(databaseName: string) {
-    const { container } = await this.startContainerPromise
+    const { container, network } = await this.startContainerPromise
     const externalDatabaseUrl = `postgresql://postgres:@${container.getHost()}:${container.getMappedPort(
       5432
     )}/${databaseName}`
@@ -178,6 +178,7 @@ export class Worker {
     return {
       connectionString: externalDatabaseUrl,
       connectionStringDocker: `postgresql://postgres:@${container.getName()}:5432/${databaseName}`,
+      networkNameDocker: network.getName(),
 
       host: container.getHost(),
       port: container.getMappedPort(5432),
@@ -188,6 +189,8 @@ export class Worker {
   }
 
   private async startContainer() {
+    const network = await new Network().start()
+
     let container = new GenericContainer(
       `postgres:${this.initialData.postgresVersion}`
     )
@@ -205,6 +208,7 @@ export class Worker {
         "full_page_writes=off",
       ])
       .withTmpFs({ "/var/lib/postgresql/data": "rw" })
+      .withNetworkMode(network.getName())
       .withStartupTimeout(120_000)
 
     if (this.initialData.containerOptions?.bindMounts) {
@@ -221,6 +225,7 @@ export class Worker {
 
     return {
       container: startedContainer,
+      network,
       postgresClient: new pg.Pool({
         connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
           5432
