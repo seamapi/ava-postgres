@@ -1,4 +1,4 @@
-import { Pool } from "pg"
+import pg from "pg"
 import { GenericContainer } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
@@ -216,7 +216,7 @@ export class Worker {
 
     return {
       container: startedContainer,
-      postgresClient: new Pool({
+      postgresClient: new pg.Pool({
         connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
           5432
         )}/postgres`,

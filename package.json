@@ -17,7 +17,9 @@
     "dist"
   ],
   "version": "0.1.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "repository": "git@github.com:seamapi/ava-postgres.git",
   "author": "Max Isom <hi@maxisom.me>",
   "license": "MIT",

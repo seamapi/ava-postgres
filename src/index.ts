@@ -1,7 +1,6 @@
-import { SharedWorker } from "ava/plugin"
+import { registerSharedWorker, SharedWorker } from "ava/plugin"
 import hash from "object-hash"
 import path from "node:path"
-import { registerSharedTypeScriptWorker } from "ava-typescript-worker"
 import {
   ConnectionDetailsFromWorker,
   InitialWorkerData,
@@ -25,6 +24,36 @@ const mapWorkerConnectionDetailsToConnectionDetails = (
   }),
 })
 
+const getWorker = async (
+  initialData: InitialWorkerData,
+  options?: GetTestPostgresDatabaseFactoryOptions<any>
+) => {
+  const key = hash({
+    initialData,
+    key: options?.key,
+  })
+
+  if (process.env.IS_TESTING_AVA_POSTGRES) {
+    const { registerSharedTypeScriptWorker } = await import(
+      "ava-typescript-worker"
+    )
+    return registerSharedTypeScriptWorker({
+      filename: new URL(
+        `file:${path.resolve(__dirname, "worker-wrapper.ts")}#${key}`
+      ),
+      initialData: initialData as any,
+    })
+  }
+
+  return registerSharedWorker({
+    filename: new URL(
+      `file:${path.resolve(__dirname, "worker-wrapper.mjs")}#${key}`
+    ),
+    initialData: initialData as any,
+    supportedProtocols: ["ava-4"],
+  })
+}
+
 export const getTestPostgresDatabaseFactory = <
   Params extends JsonObject = never
 >(
@@ -35,19 +64,12 @@ export const getTestPostgresDatabaseFactory = <
     containerOptions: options?.container,
   }
 
-  const worker = registerSharedTypeScriptWorker({
-    filename: new URL(
-      `file:${path.resolve(__dirname, "worker-wrapper.ts")}#${hash({
-        initialData,
-        key: options?.key,
-      })}`
-    ),
-    initialData: initialData as any,
-  })
+  const workerPromise = getWorker(initialData, options)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
     params
   ) => {
+    const worker = await workerPromise
     await worker.available
 
     const waitForAndHandleReply = async (
