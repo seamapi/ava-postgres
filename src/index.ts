@@ -11,6 +11,7 @@ import {
   ConnectionDetails,
   GetTestPostgresDatabase,
   GetTestPostgresDatabaseFactoryOptions,
+  GetTestPostgresDatabaseResult,
 } from "./public-types"
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
@@ -64,7 +65,7 @@ export const getTestPostgresDatabaseFactory = <
     containerOptions: options?.container,
   }
 
-  const workerPromise = getWorker(initialData, options)
+  const workerPromise = getWorker(initialData, options as any)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
     params
@@ -74,11 +75,12 @@ export const getTestPostgresDatabaseFactory = <
 
     const waitForAndHandleReply = async (
       message: SharedWorker.Plugin.PublishedMessage
-    ): Promise<ConnectionDetails> => {
+    ): Promise<GetTestPostgresDatabaseResult> => {
       let reply = await message.replies().next()
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
+        let result
         if (options?.beforeTemplateIsBaked) {
           const connectionDetails =
             mapWorkerConnectionDetailsToConnectionDetails(
@@ -99,7 +101,7 @@ export const getTestPostgresDatabaseFactory = <
             throw error
           })
 
-          await options.beforeTemplateIsBaked({
+          result = await options.beforeTemplateIsBaked({
             params: params as any,
             connection: connectionDetails,
             containerExec: async (command) => {
@@ -128,12 +130,16 @@ export const getTestPostgresDatabaseFactory = <
         return waitForAndHandleReply(
           reply.value.reply({
             type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED",
+            result,
           } as MessageToWorker)
         )
       } else if (replyData.type === "GOT_DATABASE") {
-        return mapWorkerConnectionDetailsToConnectionDetails(
-          replyData.connectionDetails
-        )
+        return {
+          ...mapWorkerConnectionDetailsToConnectionDetails(
+            replyData.connectionDetails
+          ),
+          beforeTemplateIsBakedResult: replyData.beforeTemplateIsBakedResult,
+        }
       }
 
       throw new Error(`Unexpected message type: ${replyData.type}`)

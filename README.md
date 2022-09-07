@@ -56,11 +56,12 @@ type GetTestDatabaseParams = {
   shouldSeed?: boolean
 }
 
-export const getTestDatabase = getTestPostgresDatabaseFactory<GetTestDatabaseParams>({
+export const getTestDatabase =
+  getTestPostgresDatabaseFactory<GetTestDatabaseParams>({
     beforeTemplateIsBaked: async ({
-        connection: { pool },
-        params: { shouldMigrate, shouldSeed },
-      }) => {
+      connection: { pool },
+      params: { shouldMigrate, shouldSeed },
+    }) => {
       if (shouldMigrate) {
         await pool.query("CREATE TABLE foo (id int)")
       }
@@ -68,7 +69,8 @@ export const getTestDatabase = getTestPostgresDatabaseFactory<GetTestDatabasePar
       if (shouldSeed) {
         await pool.query("INSERT INTO foo VALUES (1)")
       }
-})
+    },
+  })
 ```
 
 Then, in your tests, you can pass parameters to the `getTestDatabase()` function:
