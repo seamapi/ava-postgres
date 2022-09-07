@@ -177,7 +177,9 @@ export class Worker {
 
     return {
       connectionString: externalDatabaseUrl,
-      connectionStringDocker: `postgresql://postgres:@${container.getName()}:5432/${databaseName}`,
+      connectionStringDocker: `postgresql://postgres:@${container
+        .getName()
+        .replaceAll("/", "")}:5432/${databaseName}`,
       networkNameDocker: network.getName(),
 
       host: container.getHost(),
@@ -190,11 +192,11 @@ export class Worker {
 
   private async startContainer() {
     const network = await new Network().start()
-
     let container = new GenericContainer(
       `postgres:${this.initialData.postgresVersion}`
     )
       .withExposedPorts(5432)
+      .withName(getRandomDatabaseName())
       .withEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
       .withEnv("PGDATA", "/var/lib/postgresql/data")
       .withCmd([
