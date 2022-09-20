@@ -3,6 +3,7 @@ import hash from "object-hash"
 import path from "node:path"
 import {
   ConnectionDetailsFromWorker,
+  FinishedRunningBeforeTemplateIsBakedHookMessage,
   InitialWorkerData,
   MessageFromWorker,
   MessageToWorker,
@@ -80,7 +81,12 @@ export const getTestPostgresDatabaseFactory = <
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-        let result
+        let result: FinishedRunningBeforeTemplateIsBakedHookMessage["result"] =
+          {
+            status: "success",
+            result: undefined,
+          }
+
         if (options?.beforeTemplateIsBaked) {
           const connectionDetails =
             mapWorkerConnectionDetailsToConnectionDetails(
@@ -101,30 +107,42 @@ export const getTestPostgresDatabaseFactory = <
             throw error
           })
 
-          result = await options.beforeTemplateIsBaked({
-            params: params as any,
-            connection: connectionDetails,
-            containerExec: async (command) => {
-              const request = reply.value.reply({
-                type: "EXEC_COMMAND_IN_CONTAINER",
-                command,
-              })
+          try {
+            const hookResult = await options.beforeTemplateIsBaked({
+              params: params as any,
+              connection: connectionDetails,
+              containerExec: async (command) => {
+                const request = reply.value.reply({
+                  type: "EXEC_COMMAND_IN_CONTAINER",
+                  command,
+                })
 
-              reply = await request.replies().next()
+                reply = await request.replies().next()
 
-              if (
-                reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
-              ) {
-                throw new Error(
-                  "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
-                )
-              }
+                if (
+                  reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
+                ) {
+                  throw new Error(
+                    "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
+                  )
+                }
 
-              return reply.value.data.result
-            },
-          })
+                return reply.value.data.result
+              },
+            })
 
-          await connectionDetails.pool.end()
+            result = {
+              status: "success",
+              result: hookResult,
+            }
+          } catch (error) {
+            result = {
+              status: "error",
+              error: error as Error,
+            }
+          } finally {
+            await connectionDetails.pool.end()
+          }
         }
 
         return waitForAndHandleReply(
@@ -134,11 +152,16 @@ export const getTestPostgresDatabaseFactory = <
           } as MessageToWorker)
         )
       } else if (replyData.type === "GOT_DATABASE") {
+        if (replyData.beforeTemplateIsBakedResult.status === "error") {
+          throw replyData.beforeTemplateIsBakedResult.error
+        }
+
         return {
           ...mapWorkerConnectionDetailsToConnectionDetails(
             replyData.connectionDetails
           ),
-          beforeTemplateIsBakedResult: replyData.beforeTemplateIsBakedResult,
+          beforeTemplateIsBakedResult:
+            replyData.beforeTemplateIsBakedResult.result,
         }
       }
 
