@@ -82,3 +82,19 @@ test("beforeTemplateIsBaked (get result of hook)", async (t) => {
     beforeTemplateIsBakedResult: { tableName: "foo" },
   })
 })
+
+test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async t => {
+  const getTestServer = getTestPostgresDatabaseFactory({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    key: "beforeTemplateIsBakedHookThrows",
+    beforeTemplateIsBaked: async () => {
+      throw new Error("foo")
+    },
+  })
+
+  await t.throwsAsync(async () => {
+    await getTestServer()
+  }, {
+    message: 'foo'
+  })
+})

@@ -3,6 +3,7 @@ import hash from "object-hash"
 import path from "node:path"
 import {
   ConnectionDetailsFromWorker,
+  FinishedRunningBeforeTemplateIsBakedHookMessage,
   InitialWorkerData,
   MessageFromWorker,
   MessageToWorker,
@@ -80,52 +81,68 @@ export const getTestPostgresDatabaseFactory = <
       const replyData: MessageFromWorker = reply.value.data
 
       if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-        let result
+        let result: FinishedRunningBeforeTemplateIsBakedHookMessage['result'] = {
+          status: 'success',
+          result: undefined
+        }
+
         if (options?.beforeTemplateIsBaked) {
           const connectionDetails =
             mapWorkerConnectionDetailsToConnectionDetails(
               replyData.connectionDetails
             )
 
-          // Ignore if the pool is terminated by the shared worker
-          // (This happens in CI for some reason even though we drain the pool first.)
-          connectionDetails.pool.on("error", (error) => {
-            if (
-              error.message.includes(
-                "terminating connection due to administrator command"
-              )
-            ) {
-              return
-            }
-
-            throw error
-          })
-
-          result = await options.beforeTemplateIsBaked({
-            params: params as any,
-            connection: connectionDetails,
-            containerExec: async (command) => {
-              const request = reply.value.reply({
-                type: "EXEC_COMMAND_IN_CONTAINER",
-                command,
-              })
-
-              reply = await request.replies().next()
-
+            // Ignore if the pool is terminated by the shared worker
+            // (This happens in CI for some reason even though we drain the pool first.)
+            connectionDetails.pool.on("error", (error) => {
               if (
-                reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
-              ) {
-                throw new Error(
-                  "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
+                error.message.includes(
+                  "terminating connection due to administrator command"
                 )
+              ) {
+                return
               }
 
-              return reply.value.data.result
-            },
-          })
+              throw error
+            })
 
+        try {
+            const hookResult = await options.beforeTemplateIsBaked({
+              params: params as any,
+              connection: connectionDetails,
+              containerExec: async (command) => {
+                const request = reply.value.reply({
+                  type: "EXEC_COMMAND_IN_CONTAINER",
+                  command,
+                })
+
+                reply = await request.replies().next()
+
+                if (
+                  reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
+                ) {
+                  throw new Error(
+                    "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
+                  )
+                }
+
+                return reply.value.data.result
+              },
+            })
+
+            result = {
+              status: 'success',
+              result: hookResult
+            }
+        } catch (error) {
+          result = {
+            status: "error",
+            error: error as Error
+          }
+        } finally {
           await connectionDetails.pool.end()
         }
+      }
 
         return waitForAndHandleReply(
           reply.value.reply({
@@ -134,11 +151,15 @@ export const getTestPostgresDatabaseFactory = <
           } as MessageToWorker)
         )
       } else if (replyData.type === "GOT_DATABASE") {
+        if (replyData.beforeTemplateIsBakedResult.status === 'error') {
+          throw replyData.beforeTemplateIsBakedResult.error
+        }
+
         return {
           ...mapWorkerConnectionDetailsToConnectionDetails(
             replyData.connectionDetails
           ),
-          beforeTemplateIsBakedResult: replyData.beforeTemplateIsBakedResult,
+          beforeTemplateIsBakedResult: replyData.beforeTemplateIsBakedResult.result,
         }
       }
 
