@@ -178,3 +178,5 @@ export const getTestPostgresDatabaseFactory = <
 
   return getTestPostgresDatabase
 }
+
+export * from "./public-types"
