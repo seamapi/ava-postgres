@@ -46,7 +46,7 @@ export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
 }
 
 export type GetTestPostgresDatabase<Params = any> = (
-  args: Params,
+  args?: Params,
   /**
    * When true, created databases will automatically be dropped after the test completes.
    * This should normally be set to `true` to avoid the container running out of memory.
