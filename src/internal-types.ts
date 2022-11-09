@@ -14,6 +14,7 @@ export type ConnectionDetailsFromWorker = Except<ConnectionDetails, "pool">
 
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
+  automaticallyTeardownDatabase: boolean
   params?: JsonObject
 }
 

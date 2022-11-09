@@ -94,7 +94,7 @@ test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async (t) =
 
   await t.throwsAsync(
     async () => {
-      await getTestServer()
+      await getTestServer({})
     },
     {
       message: "foo",

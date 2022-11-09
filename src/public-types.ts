@@ -45,6 +45,12 @@ export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
   beforeTemplateIsBakedResult: any
 }
 
-export type GetTestPostgresDatabase<Params> = (
-  ...args: Params extends never ? [never] : [Params]
+export type GetTestPostgresDatabase<Params = any> = (
+  args?: Params,
+  /**
+   * When true, created databases will automatically be dropped after the test completes.
+   * This should normally be set to `true` to avoid the container running out of memory.
+   * @default true
+   */
+  automaticallyTeardownDatabase?: boolean
 ) => Promise<GetTestPostgresDatabaseResult>
