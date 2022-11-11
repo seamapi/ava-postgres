@@ -17,10 +17,6 @@ export class Worker {
     string,
     ReturnType<typeof this.createTemplate>
   >()
-  /**
-   * Don't automatically teardown these database names
-   */
-  private persistentDatabaseNames = new Set<string>()
   private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
 
@@ -77,10 +73,6 @@ export class Worker {
         ).concat(databaseName)
       )
 
-      if (!message.data.automaticallyTeardownDatabase) {
-        this.persistentDatabaseNames.add(databaseName)
-      }
-
       const gotDatabaseMessage: GotDatabaseMessage = {
         type: "GOT_DATABASE",
         connectionDetails: await this.getConnectionDetails(databaseName),
@@ -108,12 +100,10 @@ export class Worker {
       const { postgresClient } = await this.startContainerPromise
 
       await Promise.all(
-        databases
-          .filter((d) => !this.persistentDatabaseNames.has(d))
-          .map(async (database) => {
-            await this.forceDisconnectClientsFrom(database)
-            await postgresClient.query(`DROP DATABASE ${database}`)
-          })
+        databases.map(async (database) => {
+          await this.forceDisconnectClientsFrom(database)
+          await postgresClient.query(`DROP DATABASE ${database}`)
+        })
       )
     }
   }

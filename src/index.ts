@@ -56,7 +56,9 @@ const getWorker = async (
   })
 }
 
-export const getTestPostgresDatabaseFactory = <Params extends JsonObject>(
+export const getTestPostgresDatabaseFactory = <
+  Params extends JsonObject = never
+>(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
 ) => {
   const initialData: InitialWorkerData = {
@@ -67,8 +69,7 @@ export const getTestPostgresDatabaseFactory = <Params extends JsonObject>(
   const workerPromise = getWorker(initialData, options as any)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
-    params,
-    automaticallyTeardownDatabase = true
+    params
   ) => {
     const worker = await workerPromise
     await worker.available
@@ -171,7 +172,6 @@ export const getTestPostgresDatabaseFactory = <Params extends JsonObject>(
       worker.publish({
         type: "GET_TEST_DATABASE",
         params,
-        automaticallyTeardownDatabase,
       } as MessageToWorker)
     )
   }
