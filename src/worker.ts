@@ -65,7 +65,7 @@ export class Worker {
       // Create database using template
       let databaseName: string
       if (
-        !this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ||
+        this.createdDatabasesByTestWorkerId.size === 0 ||
         !this.useSingletonDatabase
       ) {
         const { postgresClient } = await this.startContainerPromise
@@ -81,9 +81,7 @@ export class Worker {
           ).concat(databaseName)
         )
       } else {
-        databaseName = this.createdDatabasesByTestWorkerId.get(
-          message.testWorker.id
-        )![0]
+        databaseName = this.createdDatabasesByTestWorkerId.values().next().value
       }
 
       const gotDatabaseMessage: GotDatabaseMessage = {
