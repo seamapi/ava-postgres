@@ -1,5 +1,5 @@
 import pg from "pg"
-import { GenericContainer, Network, Wait } from "testcontainers"
+import { GenericContainer, Network } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
 import {
@@ -222,9 +222,6 @@ export class Worker {
       ])
       .withTmpFs({ "/var/lib/postgresql/data": "rw" })
       .withNetworkMode(network.getName())
-      .withWaitStrategy(
-        Wait.forLogMessage("database system is ready to accept connections")
-      )
       .withStartupTimeout(120_000)
 
     if (this.initialData.containerOptions?.bindMounts) {
@@ -239,7 +236,12 @@ export class Worker {
 
     const startedContainer = await container.start()
 
-    await new Promise((resolve) => setTimeout(resolve, 64))
+    const { exitCode } = await startedContainer.exec(["pg_isready"])
+    if (exitCode !== 0) {
+      throw new Error(
+        `pg_isready exited with code ${exitCode} (database container didn't finish starting)`
+      )
+    }
 
     return {
       container: startedContainer,
