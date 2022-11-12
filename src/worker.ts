@@ -17,17 +17,16 @@ export class Worker {
     string,
     ReturnType<typeof this.createTemplate>
   >()
-  /**
-   * Don't automatically teardown these database names
-   */
-  private persistentDatabaseNames = new Set<string>()
   private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
+
+  private readonly useSingletonDatabase: boolean
 
   private startContainerPromise: ReturnType<typeof this.startContainer>
 
   constructor(private initialData: InitialWorkerData) {
     this.startContainerPromise = this.startContainer()
+    this.useSingletonDatabase = initialData.useSingletonDatabase
   }
 
   public async handleTestWorker(testWorker: SharedWorker.TestWorker<unknown>) {
@@ -64,26 +63,30 @@ export class Worker {
       } = await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
 
       // Create database using template
-      const { postgresClient } = await this.startContainerPromise
+      let databaseName: string
+      if (
+        this.createdDatabasesByTestWorkerId.size === 0 ||
+        !this.useSingletonDatabase
+      ) {
+        const { postgresClient } = await this.startContainerPromise
 
-      const databaseName = getRandomDatabaseName()
-      await postgresClient.query(
-        `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
-      )
-      this.createdDatabasesByTestWorkerId.set(
-        message.testWorker.id,
-        (
-          this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
-        ).concat(databaseName)
-      )
-
-      if (!message.data.automaticallyTeardownDatabase) {
-        this.persistentDatabaseNames.add(databaseName)
+        databaseName = getRandomDatabaseName()
+        await postgresClient.query(
+          `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
+        )
+        this.createdDatabasesByTestWorkerId.set(
+          message.testWorker.id,
+          (
+            this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
+          ).concat(databaseName)
+        )
+      } else {
+        databaseName = this.createdDatabasesByTestWorkerId.values().next().value
       }
 
       const gotDatabaseMessage: GotDatabaseMessage = {
         type: "GOT_DATABASE",
-        connectionDetails: await this.getConnectionDetails(databaseName),
+        connectionDetails: await this.getConnectionDetails(databaseName!),
         beforeTemplateIsBakedResult,
       }
 
@@ -104,16 +107,14 @@ export class Worker {
   ) {
     const databases = this.createdDatabasesByTestWorkerId.get(testWorker.id)
 
-    if (databases) {
+    if (databases && !this.useSingletonDatabase) {
       const { postgresClient } = await this.startContainerPromise
 
       await Promise.all(
-        databases
-          .filter((d) => !this.persistentDatabaseNames.has(d))
-          .map(async (database) => {
-            await this.forceDisconnectClientsFrom(database)
-            await postgresClient.query(`DROP DATABASE ${database}`)
-          })
+        databases.map(async (database) => {
+          await this.forceDisconnectClientsFrom(database)
+          await postgresClient.query(`DROP DATABASE ${database}`)
+        })
       )
     }
   }
@@ -234,6 +235,13 @@ export class Worker {
     }
 
     const startedContainer = await container.start()
+
+    const { exitCode } = await startedContainer.exec(["pg_isready"])
+    if (exitCode !== 0) {
+      throw new Error(
+        `pg_isready exited with code ${exitCode} (database container didn't finish starting)`
+      )
+    }
 
     return {
       container: startedContainer,
