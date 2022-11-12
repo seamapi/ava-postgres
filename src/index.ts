@@ -64,6 +64,7 @@ export const getTestPostgresDatabaseFactory = <
   const initialData: InitialWorkerData = {
     postgresVersion: options?.postgresVersion ?? "14",
     containerOptions: options?.container,
+    useSingletonDatabase: options?.useSingletonDatabase ?? false,
   }
 
   const workerPromise = getWorker(initialData, options as any)

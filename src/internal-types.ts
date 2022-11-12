@@ -7,6 +7,7 @@ import {
 
 export interface InitialWorkerData {
   postgresVersion: string
+  useSingletonDatabase: boolean
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
 }
 

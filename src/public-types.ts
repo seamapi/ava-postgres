@@ -34,6 +34,10 @@ export interface GetTestPostgresDatabaseFactoryOptions<
    * Test workers will be de-duped by this key. You probably don't need to set this.
    */
   key?: string
+  /**
+   * When true, the same database will be used for all tests (across workers) and only created once.
+   */
+  useSingletonDatabase?: boolean
   beforeTemplateIsBaked?: (options: {
     connection: ConnectionDetails
     params: Params

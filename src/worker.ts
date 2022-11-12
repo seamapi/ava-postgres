@@ -20,10 +20,13 @@ export class Worker {
   private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
 
+  private readonly useSingletonDatabase: boolean
+
   private startContainerPromise: ReturnType<typeof this.startContainer>
 
   constructor(private initialData: InitialWorkerData) {
     this.startContainerPromise = this.startContainer()
+    this.useSingletonDatabase = initialData.useSingletonDatabase
   }
 
   public async handleTestWorker(testWorker: SharedWorker.TestWorker<unknown>) {
@@ -60,22 +63,32 @@ export class Worker {
       } = await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
 
       // Create database using template
-      const { postgresClient } = await this.startContainerPromise
+      let databaseName: string
+      if (
+        !this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ||
+        !this.useSingletonDatabase
+      ) {
+        const { postgresClient } = await this.startContainerPromise
 
-      const databaseName = getRandomDatabaseName()
-      await postgresClient.query(
-        `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
-      )
-      this.createdDatabasesByTestWorkerId.set(
-        message.testWorker.id,
-        (
-          this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
-        ).concat(databaseName)
-      )
+        databaseName = getRandomDatabaseName()
+        await postgresClient.query(
+          `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
+        )
+        this.createdDatabasesByTestWorkerId.set(
+          message.testWorker.id,
+          (
+            this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
+          ).concat(databaseName)
+        )
+      } else {
+        databaseName = this.createdDatabasesByTestWorkerId.get(
+          message.testWorker.id
+        )![0]
+      }
 
       const gotDatabaseMessage: GotDatabaseMessage = {
         type: "GOT_DATABASE",
-        connectionDetails: await this.getConnectionDetails(databaseName),
+        connectionDetails: await this.getConnectionDetails(databaseName!),
         beforeTemplateIsBakedResult,
       }
 
@@ -96,7 +109,7 @@ export class Worker {
   ) {
     const databases = this.createdDatabasesByTestWorkerId.get(testWorker.id)
 
-    if (databases) {
+    if (databases && !this.useSingletonDatabase) {
       const { postgresClient } = await this.startContainerPromise
 
       await Promise.all(
