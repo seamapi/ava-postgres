@@ -19,6 +19,7 @@ export class Worker {
   >()
   private keyToDatabaseName = new Map<string, string>()
   private keyToCreationMutex = new Map<string, Mutex>()
+  private getOrCreateKeyToCreationMutex = new Mutex()
   private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
 
@@ -86,14 +87,21 @@ export class Worker {
         }
 
         if (message.data.key) {
-          if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
-            this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
-          }
+          await this.getOrCreateKeyToCreationMutex.runExclusive(() => {
+            if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
+              this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
+            }
+          })
+
           const mutex = this.keyToCreationMutex.get(fullDatabaseKey)!
 
           await mutex.runExclusive(async () => {
-            await createDatabase()
-            this.keyToDatabaseName.set(fullDatabaseKey, databaseName!)
+            if (!this.keyToDatabaseName.has(fullDatabaseKey)) {
+              await createDatabase()
+              this.keyToDatabaseName.set(fullDatabaseKey, databaseName!)
+            }
+
+            databaseName = this.keyToDatabaseName.get(fullDatabaseKey)!
           })
         } else {
           await createDatabase()
