@@ -17,16 +17,15 @@ export class Worker {
     string,
     ReturnType<typeof this.createTemplate>
   >()
+  private keyToDatabaseName = new Map<string, string>()
+  private keyToCreationMutex = new Map<string, Mutex>()
   private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
-
-  private readonly useSingletonDatabase: boolean
 
   private startContainerPromise: ReturnType<typeof this.startContainer>
 
   constructor(private initialData: InitialWorkerData) {
     this.startContainerPromise = this.startContainer()
-    this.useSingletonDatabase = initialData.useSingletonDatabase
   }
 
   public async handleTestWorker(testWorker: SharedWorker.TestWorker<unknown>) {
@@ -63,25 +62,42 @@ export class Worker {
       } = await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
 
       // Create database using template
-      let databaseName: string
-      if (
-        this.createdDatabasesByTestWorkerId.size === 0 ||
-        !this.useSingletonDatabase
-      ) {
-        const { postgresClient } = await this.startContainerPromise
+      const { postgresClient } = await this.startContainerPromise
 
-        databaseName = getRandomDatabaseName()
-        await postgresClient.query(
-          `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
-        )
-        this.createdDatabasesByTestWorkerId.set(
-          message.testWorker.id,
-          (
-            this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ?? []
-          ).concat(databaseName)
-        )
-      } else {
-        databaseName = this.createdDatabasesByTestWorkerId.values().next().value
+      // Only relevant when a `key` is provided
+      const fullDatabaseKey = `${paramsHash}-${message.data.key}`
+
+      let databaseName = message.data.key
+        ? this.keyToDatabaseName.get(fullDatabaseKey)
+        : undefined
+      if (!databaseName) {
+        const createDatabase = async () => {
+          databaseName = getRandomDatabaseName()
+          await postgresClient.query(
+            `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
+          )
+          this.createdDatabasesByTestWorkerId.set(
+            message.testWorker.id,
+            (
+              this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ??
+              []
+            ).concat(databaseName)
+          )
+        }
+
+        if (message.data.key) {
+          if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
+            this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
+          }
+          const mutex = this.keyToCreationMutex.get(fullDatabaseKey)!
+
+          await mutex.runExclusive(async () => {
+            await createDatabase()
+            this.keyToDatabaseName.set(fullDatabaseKey, databaseName!)
+          })
+        } else {
+          await createDatabase()
+        }
       }
 
       const gotDatabaseMessage: GotDatabaseMessage = {
@@ -107,7 +123,7 @@ export class Worker {
   ) {
     const databases = this.createdDatabasesByTestWorkerId.get(testWorker.id)
 
-    if (databases && !this.useSingletonDatabase) {
+    if (databases) {
       const { postgresClient } = await this.startContainerPromise
 
       await Promise.all(
