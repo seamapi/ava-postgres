@@ -31,11 +31,12 @@ test("bind mounts", async (t) => {
       containerExec,
     }) => {
       const loadSQLFile = async (fileName: string) => {
-        const { exitCode } = await containerExec(
+        const { exitCode, output } = await containerExec(
           `psql -U ${username} -d ${database} -f ${fileName}`.split(" ")
         )
 
         if (exitCode !== 0) {
+          t.log(output)
           throw new Error(`Failed to load test schema`)
         }
       }
