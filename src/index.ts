@@ -12,6 +12,7 @@ import {
   ConnectionDetails,
   GetTestPostgresDatabase,
   GetTestPostgresDatabaseFactoryOptions,
+  GetTestPostgresDatabaseOptions,
   GetTestPostgresDatabaseResult,
 } from "./public-types"
 import { Pool } from "pg"
@@ -64,13 +65,13 @@ export const getTestPostgresDatabaseFactory = <
   const initialData: InitialWorkerData = {
     postgresVersion: options?.postgresVersion ?? "14",
     containerOptions: options?.container,
-    useSingletonDatabase: options?.useSingletonDatabase ?? false,
   }
 
   const workerPromise = getWorker(initialData, options as any)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
-    params
+    params: any,
+    getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
   ) => {
     const worker = await workerPromise
     await worker.available
@@ -110,7 +111,7 @@ export const getTestPostgresDatabaseFactory = <
 
           try {
             const hookResult = await options.beforeTemplateIsBaked({
-              params: params as any,
+              params,
               connection: connectionDetails,
               containerExec: async (command) => {
                 const request = reply.value.reply({
@@ -173,6 +174,7 @@ export const getTestPostgresDatabaseFactory = <
       worker.publish({
         type: "GET_TEST_DATABASE",
         params,
+        key: getTestDatabaseOptions?.key,
       } as MessageToWorker)
     )
   }

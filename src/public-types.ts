@@ -34,10 +34,6 @@ export interface GetTestPostgresDatabaseFactoryOptions<
    * Test workers will be de-duped by this key. You probably don't need to set this.
    */
   key?: string
-  /**
-   * When true, the same database will be used for all tests (across workers) and only created once.
-   */
-  useSingletonDatabase?: boolean
   beforeTemplateIsBaked?: (options: {
     connection: ConnectionDetails
     params: Params
@@ -49,6 +45,22 @@ export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
   beforeTemplateIsBakedResult: any
 }
 
-export type GetTestPostgresDatabase<Params> = (
-  ...args: Params extends never ? [never] : [Params]
-) => Promise<GetTestPostgresDatabaseResult>
+export type GetTestPostgresDatabaseOptions = {
+  /**
+   * If `getTestPostgresDatabase()` is called multiple times with the same `key` and `params`, the same database is guaranteed to be returned.
+   */
+  key?: string
+}
+
+// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+type IsNeverType<T> = [T] extends [never] ? true : false
+
+export type GetTestPostgresDatabase<Params> = IsNeverType<Params> extends true
+  ? (
+      args?: null,
+      options?: GetTestPostgresDatabaseOptions
+    ) => Promise<GetTestPostgresDatabaseResult>
+  : (
+      args: Params,
+      options?: GetTestPostgresDatabaseOptions
+    ) => Promise<GetTestPostgresDatabaseResult>

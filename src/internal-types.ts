@@ -7,7 +7,6 @@ import {
 
 export interface InitialWorkerData {
   postgresVersion: string
-  useSingletonDatabase: boolean
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
 }
 
@@ -15,6 +14,7 @@ export type ConnectionDetailsFromWorker = Except<ConnectionDetails, "pool">
 
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
+  key?: string
   params?: JsonObject
 }
 
