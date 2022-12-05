@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x, 16.x, 18.x]
-        postgres-version: [12, 13, 14]
+        postgres-version: [13, 14, 15]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout

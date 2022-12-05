@@ -126,11 +126,17 @@ export class Worker {
     if (databases) {
       const { postgresClient } = await this.startContainerPromise
 
+      const databasesAssociatedWithKeys = new Set(
+        this.keyToDatabaseName.values()
+      )
+
       await Promise.all(
-        databases.map(async (database) => {
-          await this.forceDisconnectClientsFrom(database)
-          await postgresClient.query(`DROP DATABASE ${database}`)
-        })
+        databases
+          .filter((d) => !databasesAssociatedWithKeys.has(d))
+          .map(async (database) => {
+            await this.forceDisconnectClientsFrom(database)
+            await postgresClient.query(`DROP DATABASE ${database}`)
+          })
       )
     }
   }
