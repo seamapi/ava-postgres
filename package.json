@@ -31,7 +31,7 @@
     "@types/node": "18.7.14",
     "@types/object-hash": "2.2.1",
     "@types/pg": "8.6.5",
-    "ava": "4.3.3",
+    "ava": "5.1.0",
     "ava-typescript-worker": "1.1.0",
     "esbuild": "0.15.6",
     "esbuild-register": "3.3.3",
@@ -50,7 +50,7 @@
     "testcontainers": "8.13.0"
   },
   "peerDependencies": {
-    "ava": "4.3.3"
+    "ava": ">=4.3.3"
   },
   "scripts": {
     "test": "ava",
