@@ -47,7 +47,7 @@
     "nanoid": "4.0.0",
     "object-hash": "3.0.0",
     "pg": "8.8.0",
-    "testcontainers": "8.13.0"
+    "testcontainers": "^9.1.0"
   },
   "peerDependencies": {
     "ava": ">=4.3.3"

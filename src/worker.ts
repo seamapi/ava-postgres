@@ -238,9 +238,11 @@ export class Worker {
     )
       .withExposedPorts(5432)
       .withName(getRandomDatabaseName())
-      .withEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
-      .withEnv("PGDATA", "/var/lib/postgresql/data")
-      .withCmd([
+      .withEnvironment({
+        POSTGRES_HOST_AUTH_METHOD: "trust",
+        PGDATA: "/var/lib/postgresql/data",
+      })
+      .withCommand([
         "-c",
         "max_connections=1000",
         "-c",
@@ -253,16 +255,7 @@ export class Worker {
       .withTmpFs({ "/var/lib/postgresql/data": "rw" })
       .withNetworkMode(network.getName())
       .withStartupTimeout(120_000)
-
-    if (this.initialData.containerOptions?.bindMounts) {
-      for (const bindMount of this.initialData.containerOptions.bindMounts) {
-        container = container.withBindMount(
-          bindMount.source,
-          bindMount.target,
-          bindMount.mode
-        )
-      }
-    }
+      .withBindMounts(this.initialData.containerOptions?.bindMounts ?? [])
 
     const startedContainer = await container.start()
 
