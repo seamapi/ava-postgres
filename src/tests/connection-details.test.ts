@@ -31,11 +31,11 @@ test("using connection details manually works", async (t) => {
 })
 
 test("connect from another container", async (t) => {
-  const { connectionStringDocker, networkNameDocker } = await getTestServer()
+  const { connectionStringDocker, networkDocker } = await getTestServer()
 
   const container = await new GenericContainer("postgres:14")
     .withEnvironment({ POSTGRES_HOST_AUTH_METHOD: "trust" })
-    .withNetworkMode(networkNameDocker)
+    .withNetwork(networkDocker)
     .withStartupTimeout(120_000)
     .start()
 

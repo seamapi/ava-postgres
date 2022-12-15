@@ -17,11 +17,16 @@ import {
 } from "./public-types"
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
+import { StartedNetwork } from "testcontainers"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
   connectionDetailsFromWorker: ConnectionDetailsFromWorker
 ): ConnectionDetails => ({
   ...connectionDetailsFromWorker,
+  networkDocker: new StartedNetwork(
+    connectionDetailsFromWorker.networkDocker.id,
+    connectionDetailsFromWorker.networkDocker.options
+  ),
   pool: new Pool({
     connectionString: connectionDetailsFromWorker.connectionString,
   }),

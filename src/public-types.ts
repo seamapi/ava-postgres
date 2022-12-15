@@ -1,11 +1,12 @@
 import { Pool } from "pg"
 import { JsonObject } from "type-fest"
 import { BindMode, ExecResult } from "testcontainers/dist/docker/types"
+import { StartedNetwork } from "testcontainers"
 
 export interface ConnectionDetails {
   connectionString: string
   connectionStringDocker: string
-  networkNameDocker: string
+  networkDocker: StartedNetwork
 
   host: string
   port: number
