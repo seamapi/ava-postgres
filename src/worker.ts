@@ -221,8 +221,12 @@ export class Worker {
       connectionStringDocker: `postgresql://postgres:@${container
         .getName()
         .replace("/", "")}:5432/${databaseName}`,
-      networkNameDocker: network.getName(),
-
+      networkDocker: {
+        id: network.getId(),
+        // StartedNetwork.options is private, however we must access it here
+        // using type-safe string index notation for serialization.
+        options: network["options"],
+      },
       host: container.getHost(),
       port: container.getMappedPort(5432),
       database: databaseName,
@@ -253,7 +257,7 @@ export class Worker {
         "full_page_writes=off",
       ])
       .withTmpFs({ "/var/lib/postgresql/data": "rw" })
-      .withNetworkMode(network.getName())
+      .withNetwork(network)
       .withStartupTimeout(120_000)
       .withBindMounts(this.initialData.containerOptions?.bindMounts ?? [])
 

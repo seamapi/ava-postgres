@@ -1,5 +1,6 @@
+import { StartedNetwork } from "testcontainers"
 import { ExecResult } from "testcontainers/dist/docker/types"
-import { Except, JsonObject } from "type-fest"
+import { JsonObject } from "type-fest"
 import {
   ConnectionDetails,
   GetTestPostgresDatabaseFactoryOptions,
@@ -10,7 +11,15 @@ export interface InitialWorkerData {
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
 }
 
-export type ConnectionDetailsFromWorker = Except<ConnectionDetails, "pool">
+export type ConnectionDetailsFromWorker = Omit<
+  ConnectionDetails,
+  "pool" | "networkDocker"
+> & {
+  networkDocker: {
+    id: ConstructorParameters<typeof StartedNetwork>[0]
+    options: ConstructorParameters<typeof StartedNetwork>[1]
+  }
+}
 
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
