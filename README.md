@@ -42,6 +42,8 @@ test("foo bar", async (t) => {
 })
 ```
 
+[Full list of connection details returned by `getTestDatabase`](https://github.com/seamapi/ava-postgres/blob/e0de63b2d1f5562e33ae355848cf23bca08b82bb/src/public-types.ts#L6)
+
 ### Database setup
 
 `ava-postgres` uses [Postgres templates](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) so you only pay the setup cost once. After a template has been created, Postgres can create a new database from it in milliseconds.
