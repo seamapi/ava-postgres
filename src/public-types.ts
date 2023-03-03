@@ -34,13 +34,13 @@ export interface GetTestPostgresDatabaseFactoryOptions<
   /**
    * You probably don't need to set this.
    *
-   * Ava shared workers are used to manage the postgres container. You can set this key
-   * to create separate workers, each with a separate postgres container it manages.
+   * AVA Shared Workers are used to manage the Postgres container. You can set this key
+   * to create multiple Shared Workers, each with a separate Postgres container it manages.
    * For example, setting `app1` on one factory, and `app2` on another factory will mean
    * that two separate containers are managed by the separate factories.
    *
    * Note that this is different to the key that's passed in to `getTestPostgresDatabase`
-   * to share a database between Ava _test workers_. See GetTestPostgresDatabaseOptions.
+   * to share a database between AVA  _test workers_. See GetTestPostgresDatabaseOptions.
    */
   key?: string
   beforeTemplateIsBaked?: (options: {
