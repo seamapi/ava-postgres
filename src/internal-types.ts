@@ -41,7 +41,7 @@ export interface FinishedRunningBeforeTemplateIsBakedHookMessage {
       }
     | {
         status: "error"
-        error: Error
+        error: Error | string
       }
 }
 

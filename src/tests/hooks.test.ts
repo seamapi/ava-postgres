@@ -101,3 +101,25 @@ test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async (t) =
     }
   )
 })
+
+test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (t) => {
+  const getTestServer = getTestPostgresDatabaseFactory({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    key: "beforeTemplateIsBakedHookThrowsNonSerializable",
+    beforeTemplateIsBaked: async () => {
+      const error = new Error("foo")
+      // Typed arrays aren't serializable
+      ;(error as any).bar = new Uint16Array(1)
+      throw error
+    },
+  })
+
+  await t.throwsAsync(
+    async () => {
+      await getTestServer()
+    },
+    {
+      message: /foo/,
+    }
+  )
+})

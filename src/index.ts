@@ -145,7 +145,12 @@ export const getTestPostgresDatabaseFactory = <
           } catch (error) {
             result = {
               status: "error",
-              error: error as Error,
+              error:
+                error instanceof Error
+                  ? error.stack ?? error.message
+                  : new Error(
+                      "Unknown error type thrown in beforeTemplateIsBaked hook"
+                    ),
             }
           } finally {
             await connectionDetails.pool.end()
@@ -160,6 +165,10 @@ export const getTestPostgresDatabaseFactory = <
         )
       } else if (replyData.type === "GOT_DATABASE") {
         if (replyData.beforeTemplateIsBakedResult.status === "error") {
+          if (typeof replyData.beforeTemplateIsBakedResult.error === "string") {
+            throw new Error(replyData.beforeTemplateIsBakedResult.error)
+          }
+
           throw replyData.beforeTemplateIsBakedResult.error
         }
 
