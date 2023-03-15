@@ -1,5 +1,5 @@
 import { Pool } from "pg"
-import { JsonObject } from "type-fest"
+import { Jsonifiable } from "type-fest"
 import { BindMode, ExecResult } from "testcontainers/dist/docker/types"
 import { StartedNetwork } from "testcontainers"
 
@@ -18,7 +18,7 @@ export interface ConnectionDetails {
 }
 
 export interface GetTestPostgresDatabaseFactoryOptions<
-  Params extends JsonObject
+  Params extends Jsonifiable
 > {
   /**
    * Any tag of the official `postgres` image.
