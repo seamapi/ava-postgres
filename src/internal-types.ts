@@ -1,6 +1,6 @@
 import { StartedNetwork } from "testcontainers"
 import { ExecResult } from "testcontainers/dist/docker/types"
-import { JsonObject } from "type-fest"
+import { Jsonifiable } from "type-fest"
 import {
   ConnectionDetails,
   GetTestPostgresDatabaseFactoryOptions,
@@ -24,7 +24,7 @@ export type ConnectionDetailsFromWorker = Omit<
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
   key?: string
-  params?: JsonObject
+  params?: Jsonifiable
 }
 
 export interface RequestBeforeTemplateIsBakedHookToBeRunMessage {

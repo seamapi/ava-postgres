@@ -16,7 +16,7 @@ import {
   GetTestPostgresDatabaseResult,
 } from "./public-types"
 import { Pool } from "pg"
-import { JsonObject } from "type-fest"
+import { Jsonifiable } from "type-fest"
 import { StartedNetwork } from "testcontainers"
 
 const mapWorkerConnectionDetailsToConnectionDetails = (
@@ -63,7 +63,7 @@ const getWorker = async (
 }
 
 export const getTestPostgresDatabaseFactory = <
-  Params extends JsonObject = never
+  Params extends Jsonifiable = never
 >(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
 ) => {
