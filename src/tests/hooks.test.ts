@@ -11,7 +11,7 @@ test("beforeTemplateIsBaked", async (t) => {
 
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "beforeTemplateIsBaked",
+    shared_database_dedupe_key: "beforeTemplateIsBaked",
     beforeTemplateIsBaked: async ({
       connection: { pool },
       params: { tableName },
@@ -34,7 +34,7 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
 
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "beforeTemplateIsBakedDedupeParams",
+    shared_database_dedupe_key: "beforeTemplateIsBakedDedupeParams",
     beforeTemplateIsBaked: async ({
       connection: { pool },
       params: { tableName },
@@ -64,7 +64,7 @@ test("beforeTemplateIsBaked (get result of hook)", async (t) => {
 
   const getTestServer = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "beforeTemplateIsBakedHookResult",
+    shared_database_dedupe_key: "beforeTemplateIsBakedHookResult",
     beforeTemplateIsBaked: async ({ params: { tableName } }) => {
       return { tableName }
     },
@@ -86,7 +86,7 @@ test("beforeTemplateIsBaked (get result of hook)", async (t) => {
 test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "beforeTemplateIsBakedHookThrows",
+    shared_database_dedupe_key: "beforeTemplateIsBakedHookThrows",
     beforeTemplateIsBaked: async () => {
       throw new Error("foo")
     },
@@ -105,7 +105,7 @@ test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async (t) =
 test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (t) => {
   const getTestServer = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "beforeTemplateIsBakedHookThrowsNonSerializable",
+    shared_database_dedupe_key: "beforeTemplateIsBakedHookThrowsNonSerializable",
     beforeTemplateIsBaked: async () => {
       const error = new Error("foo")
       // Typed arrays aren't serializable
