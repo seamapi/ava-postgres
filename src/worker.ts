@@ -203,6 +203,14 @@ export class Worker {
       `REVOKE CONNECT ON DATABASE ${databaseName} FROM public`
     )
 
+    // Nicely ask clients to disconnect
+    await postgresClient.query(`
+      SELECT pid, pg_cancel_backend(pid)
+      FROM pg_stat_activity
+      WHERE datname = '${databaseName}' AND pid <> pg_backend_pid();
+      `)
+
+    // Forcefully disconnect clients
     await postgresClient.query(`
       SELECT pid, pg_terminate_backend(pid)
       FROM pg_stat_activity
