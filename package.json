@@ -16,7 +16,7 @@
   "files": [
     "dist"
   ],
-  "version": "4.0.4",
+  "version": "4.0.5",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
