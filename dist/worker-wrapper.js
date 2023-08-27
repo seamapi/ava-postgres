@@ -285,19 +285,23 @@ var Worker = class {
           type: "ava-postgres",
           message: "running postgres heartbeat..."
         });
+        let finished = false;
         const { rows } = await Promise.race([
           postgresClient.query("SELECT 1"),
           new Promise(
-            (_, reject) => setTimeout(
-              () => reject(
+            (_, reject) => setTimeout(() => {
+              if (finished) {
+                return;
+              }
+              return reject(
                 new Error(
                   "postgres heartbeat timed out after 6 seconds (query took too long)"
                 )
-              ),
-              6e3
-            )
+              );
+            }, 6e3)
           )
         ]);
+        finished = true;
         import_node_worker_threads.parentPort.postMessage({
           type: "ava-postgres",
           message: "postgres heartbeat success",

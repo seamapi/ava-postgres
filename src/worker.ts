@@ -343,20 +343,26 @@ export class Worker {
           message: "running postgres heartbeat...",
         })
 
+        let finished = false
+
         const { rows } = await Promise.race([
           postgresClient.query("SELECT 1"),
           new Promise<never>((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(
-                    "postgres heartbeat timed out after 6 seconds (query took too long)"
-                  )
-                ),
-              6000
-            )
+            setTimeout(() => {
+              if (finished) {
+                return
+              }
+
+              return reject(
+                new Error(
+                  "postgres heartbeat timed out after 6 seconds (query took too long)"
+                )
+              )
+            }, 6000)
           ),
         ])
+
+        finished = true
 
         parentPort!.postMessage({
           type: "ava-postgres",
