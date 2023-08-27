@@ -11,6 +11,7 @@ import {
 } from "./internal-types"
 import getRandomDatabaseName from "./lib/get-random-database-name"
 import { SharedWorker } from "ava/plugin"
+import { parentPort } from "node:worker_threads"
 
 export class Worker {
   private paramsHashToTemplateCreationPromise = new Map<
@@ -244,7 +245,19 @@ export class Worker {
   }
 
   private async startContainer() {
+    parentPort!.emit("message", {
+      type: "ava-postgres",
+      message: "starting container...",
+      postgresVersion: this.initialData.postgresVersion,
+    })
+
     const network = await new Network().start()
+
+    parentPort!.emit("message", {
+      type: "ava-postgres",
+      message: "stared network",
+    })
+
     let container = new GenericContainer(
       `postgres:${this.initialData.postgresVersion}`
     )
@@ -269,10 +282,29 @@ export class Worker {
       .withStartupTimeout(120_000)
       .withBindMounts(this.initialData.containerOptions?.bindMounts ?? [])
 
+    parentPort!.emit("message", {
+      type: "ava-postgres",
+      message: "starting generic container instance...",
+    })
+
     const startedContainer = await container.start()
 
-    const { exitCode } = await startedContainer.exec(["pg_isready"])
+    parentPort!.emit("message", {
+      type: "ava-postgres",
+      message: "container started",
+      port: startedContainer.getMappedPort(5432),
+      host: startedContainer.getHost(),
+    })
+
+    const { exitCode, output } = await startedContainer.exec(["pg_isready"])
     if (exitCode !== 0) {
+      parentPort!.emit("message", {
+        type: "ava-postgres",
+        message: "Postgres Container failed to start",
+        output,
+        exitCode,
+      })
+
       throw new Error(
         `pg_isready exited with code ${exitCode} (database container didn't finish starting)`
       )
