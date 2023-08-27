@@ -239,11 +239,15 @@ var Worker = class {
       message: "starting generic container instance..."
     });
     const startedContainer = await container.start();
+    const connectionString = `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
+      5432
+    )}/postgres`;
     import_node_worker_threads.parentPort.postMessage({
       type: "ava-postgres",
       message: "container started",
       port: startedContainer.getMappedPort(5432),
-      host: startedContainer.getHost()
+      host: startedContainer.getHost(),
+      connectionString
     });
     const { exitCode, output } = await startedContainer.exec(["pg_isready"]);
     if (exitCode !== 0) {
@@ -264,9 +268,7 @@ var Worker = class {
       output
     });
     const postgresClient = new import_pg.default.Pool({
-      connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
-        5432
-      )}/postgres`
+      connectionString
     });
     postgresClient.on("error", (err) => {
       import_node_worker_threads.parentPort.postMessage({

@@ -289,11 +289,16 @@ export class Worker {
 
     const startedContainer = await container.start()
 
+    const connectionString = `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
+      5432
+    )}/postgres`
+
     parentPort!.postMessage({
       type: "ava-postgres",
       message: "container started",
       port: startedContainer.getMappedPort(5432),
       host: startedContainer.getHost(),
+      connectionString,
     })
 
     const { exitCode, output } = await startedContainer.exec(["pg_isready"])
@@ -318,9 +323,7 @@ export class Worker {
     })
 
     const postgresClient = new pg.Pool({
-      connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
-        5432
-      )}/postgres`,
+      connectionString,
     })
 
     postgresClient.on("error", (err) => {
