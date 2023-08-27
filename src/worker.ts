@@ -317,14 +317,48 @@ export class Worker {
       output,
     })
 
+    const postgresClient = new pg.Pool({
+      connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
+        5432
+      )}/postgres`,
+    })
+
+    postgresClient.on("error", (err) => {
+      parentPort!.postMessage({
+        type: "ava-postgres",
+        message: "postgres client error",
+        errMessage: err.message,
+        stack: err.stack,
+      })
+    })
+
+    const heartbeat = async () => {
+      try {
+        const { rows } = await postgresClient.query("SELECT 1")
+
+        parentPort!.postMessage({
+          type: "ava-postgres",
+          message: "postgres heartbeat success",
+          rows,
+        })
+      } catch (err: any) {
+        parentPort!.postMessage({
+          type: "ava-postgres",
+          message: "postgres heartbeat failure",
+          errMessage: err.message,
+          stack: err.stack,
+        })
+      }
+
+      setTimeout(heartbeat, 5000)
+    }
+
+    heartbeat()
+
     return {
       container: startedContainer,
       network,
-      postgresClient: new pg.Pool({
-        connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
-          5432
-        )}/postgres`,
-      }),
+      postgresClient,
     }
   }
 }
