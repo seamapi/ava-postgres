@@ -324,6 +324,7 @@ export class Worker {
 
     const postgresClient = new pg.Pool({
       connectionString,
+      query_timeout: 5000,
     })
 
     postgresClient.on("error", (err) => {
@@ -337,6 +338,11 @@ export class Worker {
 
     const heartbeat = async () => {
       try {
+        parentPort!.postMessage({
+          type: "ava-postgres",
+          message: "running postgres heartbeat...",
+        })
+
         const { rows } = await postgresClient.query("SELECT 1")
 
         parentPort!.postMessage({

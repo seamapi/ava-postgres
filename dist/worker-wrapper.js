@@ -268,7 +268,8 @@ var Worker = class {
       output
     });
     const postgresClient = new import_pg.default.Pool({
-      connectionString
+      connectionString,
+      query_timeout: 5e3
     });
     postgresClient.on("error", (err) => {
       import_node_worker_threads.parentPort.postMessage({
@@ -280,6 +281,10 @@ var Worker = class {
     });
     const heartbeat = async () => {
       try {
+        import_node_worker_threads.parentPort.postMessage({
+          type: "ava-postgres",
+          message: "running postgres heartbeat..."
+        });
         const { rows } = await postgresClient.query("SELECT 1");
         import_node_worker_threads.parentPort.postMessage({
           type: "ava-postgres",
