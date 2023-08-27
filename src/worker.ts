@@ -245,7 +245,7 @@ export class Worker {
   }
 
   private async startContainer() {
-    parentPort!.emit("message", {
+    parentPort!.postMessage({
       type: "ava-postgres",
       message: "starting container...",
       postgresVersion: this.initialData.postgresVersion,
@@ -253,7 +253,7 @@ export class Worker {
 
     const network = await new Network().start()
 
-    parentPort!.emit("message", {
+    parentPort!.postMessage({
       type: "ava-postgres",
       message: "stared network",
     })
@@ -282,14 +282,14 @@ export class Worker {
       .withStartupTimeout(120_000)
       .withBindMounts(this.initialData.containerOptions?.bindMounts ?? [])
 
-    parentPort!.emit("message", {
+    parentPort!.postMessage({
       type: "ava-postgres",
       message: "starting generic container instance...",
     })
 
     const startedContainer = await container.start()
 
-    parentPort!.emit("message", {
+    parentPort!.postMessage({
       type: "ava-postgres",
       message: "container started",
       port: startedContainer.getMappedPort(5432),
@@ -298,7 +298,7 @@ export class Worker {
 
     const { exitCode, output } = await startedContainer.exec(["pg_isready"])
     if (exitCode !== 0) {
-      parentPort!.emit("message", {
+      parentPort!.postMessage({
         type: "ava-postgres",
         message: "Postgres Container failed to start",
         output,
