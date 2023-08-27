@@ -253,7 +253,19 @@ var Worker = class {
           type: "ava-postgres",
           message: "running postgres heartbeat..."
         });
-        const { rows } = await postgresClient.query("SELECT 1");
+        const { rows } = await Promise.race([
+          postgresClient.query("SELECT 1"),
+          new Promise(
+            (_, reject) => setTimeout(
+              () => reject(
+                new Error(
+                  "postgres heartbeat timed out after 6 seconds (query took too long)"
+                )
+              ),
+              6e3
+            )
+          )
+        ]);
         parentPort.postMessage({
           type: "ava-postgres",
           message: "postgres heartbeat success",
