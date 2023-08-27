@@ -257,6 +257,12 @@ var Worker = class {
         `pg_isready exited with code ${exitCode} (database container didn't finish starting)`
       );
     }
+    import_node_worker_threads.parentPort.postMessage({
+      type: "ava-postgres",
+      message: "pg_isready succeeded",
+      exitCode,
+      output
+    });
     return {
       container: startedContainer,
       network,

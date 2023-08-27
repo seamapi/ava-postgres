@@ -310,6 +310,13 @@ export class Worker {
       )
     }
 
+    parentPort!.postMessage({
+      type: "ava-postgres",
+      message: "pg_isready succeeded",
+      exitCode,
+      output,
+    })
+
     return {
       container: startedContainer,
       network,
