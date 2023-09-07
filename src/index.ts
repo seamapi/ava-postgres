@@ -38,7 +38,7 @@ const getWorker = async (
 ) => {
   const key = hash({
     initialData,
-    key: options?.key,
+    key: options?.workerDedupeKey,
   })
 
   if (process.env.IS_TESTING_AVA_POSTGRES) {
@@ -188,7 +188,7 @@ export const getTestPostgresDatabaseFactory = <
       worker.publish({
         type: "GET_TEST_DATABASE",
         params,
-        key: getTestDatabaseOptions?.key,
+        key: getTestDatabaseOptions?.databaseDedupeKey,
       } as MessageToWorker)
     )
   }

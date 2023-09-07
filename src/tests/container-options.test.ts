@@ -13,7 +13,7 @@ test("bind mounts", async (t) => {
 
   const getTestPostgresDatabase = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "bindMounts",
+    workerDedupeKey: "bindMounts",
     container: {
       bindMounts: [
         {

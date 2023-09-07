@@ -14,5 +14,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16
+      - name: Install dependencies
+        run: yarn install
       - name: Run Prettier Test
         run: npx prettier --check .

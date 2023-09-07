@@ -4,15 +4,15 @@ import { getTestPostgresDatabaseFactory } from "~/index"
 test("keyed", async (t) => {
   const getTestDatabase = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "keyed",
+    workerDedupeKey: "keyed",
   })
 
   const [database1, database2] = await Promise.all([
     getTestDatabase(null, {
-      key: "foo",
+      databaseDedupeKey: "foo",
     }),
     getTestDatabase(null, {
-      key: "foo",
+      databaseDedupeKey: "foo",
     }),
   ])
 
@@ -22,15 +22,15 @@ test("keyed", async (t) => {
 test("defaults to different databases", async (t) => {
   const getTestDatabase = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "notKeyedByDefault",
+    workerDedupeKey: "notKeyedByDefault",
   })
 
   const [database1, database2, database3] = await Promise.all([
     getTestDatabase(null, {
-      key: "foo",
+      databaseDedupeKey: "foo",
     }),
     getTestDatabase(null, {
-      key: "foo",
+      databaseDedupeKey: "foo",
     }),
     getTestDatabase(),
   ])
@@ -48,7 +48,7 @@ test("works with hooks", async (t) => {
 
   const getTestDatabase = getTestPostgresDatabaseFactory<TestFactoryParams>({
     postgresVersion: process.env.POSTGRES_VERSION,
-    key: "keyedWithHook",
+    workerDedupeKey: "keyedWithHook",
     beforeTemplateIsBaked: async ({
       connection: { pool },
       params: { tableName },
@@ -61,7 +61,7 @@ test("works with hooks", async (t) => {
   const { pool } = await getTestDatabase(
     { tableName: "foo" },
     {
-      key: "foo",
+      databaseDedupeKey: "foo",
     }
   )
 
@@ -72,19 +72,19 @@ test("works with hooks", async (t) => {
     getTestDatabase(
       { tableName: "foo" },
       {
-        key: "foo",
+        databaseDedupeKey: "foo",
       }
     ),
     getTestDatabase(
       { tableName: "foo" },
       {
-        key: "foo",
+        databaseDedupeKey: "foo",
       }
     ),
     getTestDatabase(
       { tableName: "bar" },
       {
-        key: "foo",
+        databaseDedupeKey: "foo",
       }
     ),
   ])
