@@ -157,12 +157,22 @@ export const getTestPostgresDatabaseFactory = <
           }
         }
 
-        return waitForAndHandleReply(
-          reply.value.reply({
-            type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED",
-            result,
-          } as MessageToWorker)
-        )
+        try {
+          return waitForAndHandleReply(
+            reply.value.reply({
+              type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED",
+              result,
+            } as MessageToWorker)
+          )
+        } catch (error) {
+          if (error instanceof Error && error.name === "DataCloneError") {
+            throw new TypeError(
+              "Return value of beforeTemplateIsBaked() hook could not be serialized. Make sure it returns only JSON-serializable values."
+            )
+          }
+
+          throw error
+        }
       } else if (replyData.type === "GOT_DATABASE") {
         if (replyData.beforeTemplateIsBakedResult.status === "error") {
           if (typeof replyData.beforeTemplateIsBakedResult.error === "string") {

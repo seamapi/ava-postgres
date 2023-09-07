@@ -123,3 +123,25 @@ test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (
     }
   )
 })
+
+test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
+  const getTestServer = getTestPostgresDatabaseFactory({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    workerDedupeKey: "beforeTemplateIsBakedHookNonSerializable",
+    beforeTemplateIsBaked: async () => {
+      return {
+        foo: () => "bar",
+      }
+    },
+  })
+
+  // Should throw error with clear message
+  await t.throwsAsync(
+    async () => {
+      await getTestServer()
+    },
+    {
+      message: /could not be serialized/,
+    }
+  )
+})

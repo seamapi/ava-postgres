@@ -1,10 +1,10 @@
-import { StartedNetwork } from "testcontainers"
-import { ExecResult } from "testcontainers/dist/docker/types"
-import { Jsonifiable } from "type-fest"
-import {
+import type { StartedNetwork } from "testcontainers"
+import type { Jsonifiable } from "type-fest"
+import type {
   ConnectionDetails,
   GetTestPostgresDatabaseFactoryOptions,
 } from "./public-types"
+import type { ExecResult } from "testcontainers/dist/src/docker/types"
 
 export interface InitialWorkerData {
   postgresVersion: string
