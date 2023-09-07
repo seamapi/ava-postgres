@@ -446,12 +446,12 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-2.0.0.tgz#f544a148d3ab35801c1f633a7441fd87c2e484bf"
   integrity sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==
 
-"@types/archiver@^5.3.1":
-  version "5.3.1"
-  resolved "https://registry.yarnpkg.com/@types/archiver/-/archiver-5.3.1.tgz#02991e940a03dd1a32678fead4b4ca03d0e387ca"
-  integrity sha512-wKYZaSXaDvTZuInAWjCeGG7BEAgTWG2zZW0/f7IYFcoHB2X2d9lkVFnrOlXl3W6NrvO6Ml3FLLu8Uksyymcpnw==
+"@types/archiver@^5.3.2":
+  version "5.3.2"
+  resolved "https://registry.yarnpkg.com/@types/archiver/-/archiver-5.3.2.tgz#a9f0bcb0f0b991400e7766d35f6e19d163bdadcc"
+  integrity sha512-IctHreBuWE5dvBDz/0WeKtyVKVRs4h75IblxOACL92wU66v+HGAfEYAOyXkOFphvRJMhuXdI9huDXpX0FC6lCw==
   dependencies:
-    "@types/glob" "*"
+    "@types/readdir-glob" "*"
 
 "@types/docker-modem@*":
   version "3.0.2"
@@ -461,26 +461,13 @@
     "@types/node" "*"
     "@types/ssh2" "*"
 
-"@types/dockerode@^3.3.12":
-  version "3.3.14"
-  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-3.3.14.tgz#0c4ff53ea9990c43d525c865525f13e084afb5b0"
-  integrity sha512-PUTwtySPzCbjZ/uqRMBWKHtLGqBAlhnLitzHuom19NEX0KBYsQXqbVlig+zbUgYQU1paDeQURXj7QNglh1RI6A==
+"@types/dockerode@^3.3.19":
+  version "3.3.19"
+  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-3.3.19.tgz#59eb07550a102b397a9504083a6c50d811eed04c"
+  integrity sha512-7CC5yIpQi+bHXwDK43b/deYXteP3Lem9gdocVVHJPSRJJLMfbiOchQV3rDmAPkMw+n3GIVj7m1six3JW+VcwwA==
   dependencies:
     "@types/docker-modem" "*"
     "@types/node" "*"
-
-"@types/glob@*":
-  version "8.0.0"
-  resolved "https://registry.yarnpkg.com/@types/glob/-/glob-8.0.0.tgz#321607e9cbaec54f687a0792b2d1d370739455d2"
-  integrity sha512-l6NQsDDyQUVeoTynNpC9uRvCUint/gSUXQA2euwmTuWGvPY5LSDUu6tkCtJB2SvGQlJQzLaKqcGZP4//7EDveA==
-  dependencies:
-    "@types/minimatch" "*"
-    "@types/node" "*"
-
-"@types/minimatch@*":
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-5.1.2.tgz#07508b45797cb81ec3f273011b054cd0755eddca"
-  integrity sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==
 
 "@types/minimist@^1.2.0":
   version "1.2.2"
@@ -520,6 +507,13 @@
     "@types/node" "*"
     pg-protocol "*"
     pg-types "^2.2.0"
+
+"@types/readdir-glob@*":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@types/readdir-glob/-/readdir-glob-1.1.1.tgz#27ac2db283e6aa3d110b14ff9da44fcd1a5c38b1"
+  integrity sha512-ImM6TmoF8bgOwvehGviEj3tRdRBbQujr1N+0ypaln/GWjaerOB26jb93vsRHmdMtvVQZQebOlqt2HROark87mQ==
+  dependencies:
+    "@types/node" "*"
 
 "@types/retry@0.12.0":
   version "0.12.0"
@@ -757,6 +751,11 @@ asn1@^0.2.4:
   integrity sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==
   dependencies:
     safer-buffer "~2.1.0"
+
+async-lock@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/async-lock/-/async-lock-1.4.0.tgz#c8b6630eff68fbbdd8a5b6eb763dac3bfbb8bf02"
+  integrity sha512-coglx5yIWuetakm3/1dsX9hxCNox22h7+V80RQOu2XUUMidtArxKoZoOtHUPuR84SycKTXzgGzAUR5hJxujyJQ==
 
 async-mutex@0.4.0:
   version "0.4.0"
@@ -1481,12 +1480,12 @@ dir-glob@^3.0.0, dir-glob@^3.0.1:
   dependencies:
     path-type "^4.0.0"
 
-docker-compose@^0.23.17:
-  version "0.23.17"
-  resolved "https://registry.yarnpkg.com/docker-compose/-/docker-compose-0.23.17.tgz#8816bef82562d9417dc8c790aa4871350f93a2ba"
-  integrity sha512-YJV18YoYIcxOdJKeFcCFihE6F4M2NExWM/d4S1ITcS9samHKnNUihz9kjggr0dNtsrbpFNc7/Yzd19DWs+m1xg==
+docker-compose@^0.24.1:
+  version "0.24.2"
+  resolved "https://registry.yarnpkg.com/docker-compose/-/docker-compose-0.24.2.tgz#172027153b6c16239d5457fe48f56c7803f42c9d"
+  integrity sha512-2/WLvA7UZ6A2LDLQrYW0idKipmNBWhtfvrn2yzjC5PnHDzuFVj1zAZN6MJxVMKP0zZH8uzAK6OwVZYHGuyCmTw==
   dependencies:
-    yaml "^1.10.2"
+    yaml "^2.2.2"
 
 docker-modem@^3.0.0:
   version "3.0.6"
@@ -1498,10 +1497,10 @@ docker-modem@^3.0.0:
     split-ca "^1.0.1"
     ssh2 "^1.11.0"
 
-dockerode@^3.3.4:
-  version "3.3.4"
-  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-3.3.4.tgz#875de614a1be797279caa9fe27e5637cf0e40548"
-  integrity sha512-3EUwuXnCU+RUlQEheDjmBE0B7q66PV9Rw5NiH1sXwINq0M9c5ERP9fxgkw36ZHOtzf4AGEEYySnkx/sACC9EgQ==
+dockerode@^3.3.5:
+  version "3.3.5"
+  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-3.3.5.tgz#7ae3f40f2bec53ae5e9a741ce655fff459745629"
+  integrity sha512-/0YNa3ZDNeLr/tSckmD69+Gq+qVNhvKfAHNeZJBnp7EOP6RGKV8ORrJHkUn20So5wU+xxT7+1n5u8PjHbfjbSA==
   dependencies:
     "@balena/dockerignore" "^1.0.2"
     docker-modem "^3.0.0"
@@ -3157,6 +3156,13 @@ node-emoji@^1.11.0:
   dependencies:
     lodash "^4.17.21"
 
+node-fetch@^2.6.12:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
+  integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
+  dependencies:
+    whatwg-url "^5.0.0"
+
 node-fetch@^2.6.7:
   version "2.6.7"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.7.tgz#24de9fba827e3b4ae44dc8b20256a379160052ad"
@@ -3873,6 +3879,15 @@ promzard@^0.3.0:
   dependencies:
     read "1"
 
+proper-lockfile@^4.1.2:
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/proper-lockfile/-/proper-lockfile-4.1.2.tgz#c8b9de2af6b2f1601067f98e01ac66baa223141f"
+  integrity sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA==
+  dependencies:
+    graceful-fs "^4.2.4"
+    retry "^0.12.0"
+    signal-exit "^3.0.2"
+
 properties-reader@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/properties-reader/-/properties-reader-2.2.0.tgz#41d837fe143d8d5f2386b6a869a1975c0b2c595c"
@@ -4209,7 +4224,7 @@ shebang-regex@^3.0.0:
   resolved "https://registry.yarnpkg.com/shebang-regex/-/shebang-regex-3.0.0.tgz#ae16f1644d873ecad843b0307b143362d4c42172"
   integrity sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==
 
-signal-exit@^3.0.3, signal-exit@^3.0.7:
+signal-exit@^3.0.2, signal-exit@^3.0.3, signal-exit@^3.0.7:
   version "3.0.7"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.7.tgz#a9a1767f8af84155114eaabd73f99273c8f59ad9"
   integrity sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==
@@ -4569,23 +4584,27 @@ tempy@^1.0.0:
     type-fest "^0.16.0"
     unique-string "^2.0.0"
 
-testcontainers@^9.1.0:
-  version "9.1.0"
-  resolved "https://registry.yarnpkg.com/testcontainers/-/testcontainers-9.1.0.tgz#3dc58017013acd9aaa5eabdca269b167647c3984"
-  integrity sha512-YzVC6XFA/fZeCPg1Nk+11sCp3ZTKquyAIoKmGXH571IOs60Eeb/ven1XfGhGQMeGeuEJFa9i1lqZ5nduJJglgw==
+testcontainers@^9.9.1:
+  version "9.12.0"
+  resolved "https://registry.yarnpkg.com/testcontainers/-/testcontainers-9.12.0.tgz#f9f2492af4317f649611005b60fa0bbf6fdd7639"
+  integrity sha512-zmjLTAUqCiDvhDq7TCwcyhI3m/cXXKGnhyLLJ9pgh53VgG9O+P+opX1pIx28aYTUQ7Yu6b5sJf0xoIuxoiclWg==
   dependencies:
     "@balena/dockerignore" "^1.0.2"
-    "@types/archiver" "^5.3.1"
-    "@types/dockerode" "^3.3.12"
+    "@types/archiver" "^5.3.2"
+    "@types/dockerode" "^3.3.19"
     archiver "^5.3.1"
+    async-lock "^1.4.0"
     byline "^5.0.0"
     debug "^4.3.4"
-    docker-compose "^0.23.17"
-    dockerode "^3.3.4"
+    docker-compose "^0.24.1"
+    dockerode "^3.3.5"
     get-port "^5.1.1"
+    node-fetch "^2.6.12"
+    proper-lockfile "^4.1.2"
     properties-reader "^2.2.0"
     ssh-remote-port-forward "^1.0.4"
     tar-fs "^2.1.1"
+    tmp "^0.2.1"
 
 text-extensions@^1.0.0:
   version "1.9.0"
@@ -4640,6 +4659,13 @@ tiny-relative-date@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/tiny-relative-date/-/tiny-relative-date-1.3.0.tgz#fa08aad501ed730f31cc043181d995c39a935e07"
   integrity sha512-MOQHpzllWxDCHHaDno30hhLfbouoYlOI8YlMNtvKe1zXbjEVhbcEovQxvZrPvtiYW630GQDoMMarCnjfyfHA+A==
+
+tmp@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/tmp/-/tmp-0.2.1.tgz#8457fc3037dcf4719c251367a1af6500ee1ccf14"
+  integrity sha512-76SUhtfqR2Ijn+xllcI5P1oyannHNHByD80W1q447gU3mp9G9PSpGdWmjUOHRDPiHYacIk66W7ubDTuPF3BEtQ==
+  dependencies:
+    rimraf "^3.0.0"
 
 to-regex-range@^5.0.1:
   version "5.0.1"
@@ -4928,6 +4954,11 @@ yaml@^1.10.0, yaml@^1.10.2:
   version "1.10.2"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-1.10.2.tgz#2301c5ffbf12b467de8da2333a459e29e7920e4b"
   integrity sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==
+
+yaml@^2.2.2:
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.3.2.tgz#f522db4313c671a0ca963a75670f1c12ea909144"
+  integrity sha512-N/lyzTPaJasoDmfV7YTrYCI0G/3ivm/9wdG0aHuheKowWQwGTsK0Eoiw6utmzAnI6pkJa0DUVygvp3spqqEKXg==
 
 yargs-parser@^20.2.2, yargs-parser@^20.2.3:
   version "20.2.9"
