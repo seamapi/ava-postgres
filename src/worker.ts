@@ -12,6 +12,12 @@ import {
 import getRandomDatabaseName from "./lib/get-random-database-name"
 import { SharedWorker } from "ava/plugin"
 
+class TestWorkerShutdownError extends Error {
+  constructor() {
+    super("Test worker unexpectedly shut down")
+  }
+}
+
 export class Worker {
   private paramsHashToTemplateCreationPromise = new Map<
     string,
@@ -56,11 +62,23 @@ export class Worker {
           )
         }
       })
+      let templateCreationResult
+      try {
+        templateCreationResult =
+          await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
+      } catch (error) {
+        if (error instanceof TestWorkerShutdownError) {
+          return
+        }
+
+        throw error
+      }
+
       const {
         templateName,
         beforeTemplateIsBakedResult,
         lastMessage: lastMessageFromTemplateCreation,
-      } = await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
+      } = templateCreationResult!
 
       // Create database using template
       const { postgresClient } = await this.startContainerPromise
@@ -164,6 +182,10 @@ export class Worker {
     })
 
     let reply = await msg.replies().next()
+
+    if (reply.done) {
+      throw new TestWorkerShutdownError()
+    }
 
     while (
       reply.value.data.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"

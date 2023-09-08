@@ -1,7 +1,7 @@
-import { Pool } from "pg"
-import { Jsonifiable } from "type-fest"
-import { BindMode, ExecResult } from "testcontainers/dist/docker/types"
-import { StartedNetwork } from "testcontainers"
+import type { Pool } from "pg"
+import type { Jsonifiable } from "type-fest"
+import type { StartedNetwork } from "testcontainers"
+import type { BindMode, ExecResult } from "testcontainers/dist/src/docker/types"
 
 export interface ConnectionDetails {
   connectionString: string
