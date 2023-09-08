@@ -167,6 +167,10 @@ export class Worker {
 
     console.log(JSON.stringify(reply, null, 2))
 
+    if (reply.done) {
+      throw new Error("Test worker has already shut down")
+    }
+
     while (
       reply.value.data.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
     ) {
