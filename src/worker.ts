@@ -165,6 +165,8 @@ export class Worker {
 
     let reply = await msg.replies().next()
 
+    console.log(JSON.stringify(reply, null, 2))
+
     while (
       reply.value.data.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
     ) {
