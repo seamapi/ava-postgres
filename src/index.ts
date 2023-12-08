@@ -74,7 +74,21 @@ export const getTestPostgresDatabaseFactory = <
         connectionString: connectionDetailsFromWorker.connectionString,
       })
 
-      t.teardown(async () => await pool.end())
+      t.teardown(async () => {
+        try {
+          await pool.end()
+        } catch (error) {
+          if (
+            (error as Error).message.includes(
+              "Called end on pool more than once"
+            )
+          ) {
+            return
+          }
+
+          throw error
+        }
+      })
 
       return {
         ...connectionDetailsFromWorker,
@@ -160,6 +174,9 @@ export const getTestPostgresDatabaseFactory = <
                       "Unknown error type thrown in beforeTemplateIsBaked hook"
                     ),
             }
+          } finally {
+            // Otherwise connection will be killed by worker when converting to template
+            await connectionDetails.pool.end()
           }
         }
 
