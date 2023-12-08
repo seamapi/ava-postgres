@@ -46,7 +46,7 @@ test("bind mounts", async (t) => {
     },
   })
 
-  const { pool } = await getTestPostgresDatabase()
+  const { pool } = await getTestPostgresDatabase(t)
 
   await t.notThrowsAsync(async () => await pool.query("SELECT * FROM foo"))
   await t.notThrowsAsync(async () => await pool.query("SELECT * FROM bar"))

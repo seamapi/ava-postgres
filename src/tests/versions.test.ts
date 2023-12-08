@@ -12,8 +12,8 @@ test("works with multiple versions", async (t) => {
   })
 
   const [postgres13, postgres14] = await Promise.all([
-    getPostgres13(),
-    getPostgres14(),
+    getPostgres13(t),
+    getPostgres14(t),
   ])
 
   const parseVersion = (result: QueryResult) => {

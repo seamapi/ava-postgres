@@ -18,19 +18,7 @@ import {
 import { Pool } from "pg"
 import { Jsonifiable } from "type-fest"
 import { StartedNetwork } from "testcontainers"
-
-const mapWorkerConnectionDetailsToConnectionDetails = (
-  connectionDetailsFromWorker: ConnectionDetailsFromWorker
-): ConnectionDetails => ({
-  ...connectionDetailsFromWorker,
-  networkDocker: new StartedNetwork(
-    connectionDetailsFromWorker.networkDocker.id,
-    connectionDetailsFromWorker.networkDocker.options
-  ),
-  pool: new Pool({
-    connectionString: connectionDetailsFromWorker.connectionString,
-  }),
-})
+import { ExecutionContext } from "ava"
 
 const getWorker = async (
   initialData: InitialWorkerData,
@@ -75,9 +63,29 @@ export const getTestPostgresDatabaseFactory = <
   const workerPromise = getWorker(initialData, options as any)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
+    t: ExecutionContext,
     params: any,
     getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
   ) => {
+    const mapWorkerConnectionDetailsToConnectionDetails = (
+      connectionDetailsFromWorker: ConnectionDetailsFromWorker
+    ): ConnectionDetails => {
+      const pool = new Pool({
+        connectionString: connectionDetailsFromWorker.connectionString,
+      })
+
+      t.teardown(async () => await pool.end())
+
+      return {
+        ...connectionDetailsFromWorker,
+        networkDocker: new StartedNetwork(
+          connectionDetailsFromWorker.networkDocker.id,
+          connectionDetailsFromWorker.networkDocker.options
+        ),
+        pool,
+      }
+    }
+
     const worker = await workerPromise
     await worker.available
 
@@ -152,8 +160,6 @@ export const getTestPostgresDatabaseFactory = <
                       "Unknown error type thrown in beforeTemplateIsBaked hook"
                     ),
             }
-          } finally {
-            await connectionDetails.pool.end()
           }
         }
 

@@ -9,7 +9,7 @@ const getTestServer = getTestPostgresDatabaseFactory({
 const NUM_OF_DEFAULT_POSTGRES_DATABASES = 1
 
 test("database that first test worker created should have been dropped", async (t) => {
-  const { pool } = await getTestServer()
+  const { pool } = await getTestServer(t)
 
   await pRetry(
     async () => {

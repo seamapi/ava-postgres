@@ -6,7 +6,7 @@ const getTestDatabase = getTestPostgresDatabaseFactory({
 })
 
 test("keyed returns same database across workers (1/2)", async (t) => {
-  const database = await getTestDatabase(null, {
+  const database = await getTestDatabase(t, null, {
     databaseDedupeKey: "foo",
   })
 

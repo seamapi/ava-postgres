@@ -8,10 +8,10 @@ test("keyed", async (t) => {
   })
 
   const [database1, database2] = await Promise.all([
-    getTestDatabase(null, {
+    getTestDatabase(t, null, {
       databaseDedupeKey: "foo",
     }),
-    getTestDatabase(null, {
+    getTestDatabase(t, null, {
       databaseDedupeKey: "foo",
     }),
   ])
@@ -26,13 +26,13 @@ test("defaults to different databases", async (t) => {
   })
 
   const [database1, database2, database3] = await Promise.all([
-    getTestDatabase(null, {
+    getTestDatabase(t, null, {
       databaseDedupeKey: "foo",
     }),
-    getTestDatabase(null, {
+    getTestDatabase(t, null, {
       databaseDedupeKey: "foo",
     }),
-    getTestDatabase(),
+    getTestDatabase(t),
   ])
 
   t.is(database1.connectionString, database2.connectionString)
@@ -59,6 +59,7 @@ test("works with hooks", async (t) => {
   })
 
   const { pool } = await getTestDatabase(
+    t,
     { tableName: "foo" },
     {
       databaseDedupeKey: "foo",
@@ -70,18 +71,21 @@ test("works with hooks", async (t) => {
 
   const [database1, database2, database3] = await Promise.all([
     getTestDatabase(
+      t,
       { tableName: "foo" },
       {
         databaseDedupeKey: "foo",
       }
     ),
     getTestDatabase(
+      t,
       { tableName: "foo" },
       {
         databaseDedupeKey: "foo",
       }
     ),
     getTestDatabase(
+      t,
       { tableName: "bar" },
       {
         databaseDedupeKey: "foo",
