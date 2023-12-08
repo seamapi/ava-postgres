@@ -8,7 +8,7 @@ const getTestServer = getTestPostgresDatabaseFactory({
 })
 
 test("gets a valid Pool instance", async (t) => {
-  const { pool } = await getTestServer()
+  const { pool } = await getTestServer(t)
   const {
     rows: [row],
   } = await pool.query("SELECT 1 + 1 AS result")
@@ -16,7 +16,7 @@ test("gets a valid Pool instance", async (t) => {
 })
 
 test("using connection details manually works", async (t) => {
-  const connectionDetails = await getTestServer()
+  const connectionDetails = await getTestServer(t)
   const pool = new Pool({
     host: connectionDetails.host,
     port: connectionDetails.port,
@@ -31,7 +31,7 @@ test("using connection details manually works", async (t) => {
 })
 
 test("connect from another container", async (t) => {
-  const { connectionStringDocker, networkDocker } = await getTestServer()
+  const { connectionStringDocker, networkDocker } = await getTestServer(t)
 
   const container = await new GenericContainer("postgres:14")
     .withEnvironment({ POSTGRES_HOST_AUTH_METHOD: "trust" })

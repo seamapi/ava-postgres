@@ -21,7 +21,7 @@ test("beforeTemplateIsBaked", async (t) => {
     },
   })
 
-  const { pool } = await getTestServer({ tableName: "foo" })
+  const { pool } = await getTestServer(t, { tableName: "foo" })
 
   t.true(wasHookCalled)
   await t.notThrowsAsync(async () => await pool.query('SELECT * FROM "foo"'))
@@ -45,14 +45,14 @@ test("beforeTemplateIsBaked (params are de-duped)", async (t) => {
 
   // Create first template
   await Promise.all([
-    getTestServer({ tableName: "foo" }),
+    getTestServer(t, { tableName: "foo" }),
     // Re-use created template
-    getTestServer({ tableName: "foo" }),
+    getTestServer(t, { tableName: "foo" }),
     // Create second template
-    getTestServer({ tableName: "bar" }),
+    getTestServer(t, { tableName: "bar" }),
   ])
 
-  const { pool } = await getTestServer({ tableName: "foo" })
+  const { pool } = await getTestServer(t, { tableName: "foo" })
   // Should have created two templates
   t.is(await countDatabaseTemplates(pool), 2)
 })
@@ -70,15 +70,15 @@ test("beforeTemplateIsBaked (get result of hook)", async (t) => {
     },
   })
 
-  t.like(await getTestServer({ tableName: "foo" }), {
+  t.like(await getTestServer(t, { tableName: "foo" }), {
     beforeTemplateIsBakedResult: { tableName: "foo" },
   })
 
-  t.like(await getTestServer({ tableName: "bar" }), {
+  t.like(await getTestServer(t, { tableName: "bar" }), {
     beforeTemplateIsBakedResult: { tableName: "bar" },
   })
 
-  t.like(await getTestServer({ tableName: "foo" }), {
+  t.like(await getTestServer(t, { tableName: "foo" }), {
     beforeTemplateIsBakedResult: { tableName: "foo" },
   })
 })
@@ -94,7 +94,7 @@ test("beforeTemplateIsBaked (if hook throws, worker doesn't crash)", async (t) =
 
   await t.throwsAsync(
     async () => {
-      await getTestServer()
+      await getTestServer(t)
     },
     {
       message: /foo/,
@@ -116,7 +116,7 @@ test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (
 
   await t.throwsAsync(
     async () => {
-      await getTestServer()
+      await getTestServer(t)
     },
     {
       message: /foo/,
@@ -138,7 +138,7 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
   // Should throw error with clear message
   await t.throwsAsync(
     async () => {
-      await getTestServer()
+      await getTestServer(t)
     },
     {
       message: /could not be serialized/,

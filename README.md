@@ -2,6 +2,8 @@
 
 `ava-postgres` is a test fixture for [AVA](https://github.com/avajs/ava) that provides you with nearly-instant access to a fresh Postgres database for every test.
 
+`ava-postgres`'s only dependency is a running instance of Docker.
+
 ## Installation
 
 ```sh

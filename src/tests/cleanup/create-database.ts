@@ -6,6 +6,6 @@ const getTestServer = getTestPostgresDatabaseFactory({
 })
 
 test("create database", async (t) => {
-  await getTestServer()
+  await getTestServer(t)
   t.pass()
 })

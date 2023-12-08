@@ -2,6 +2,7 @@ import type { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
 import type { StartedNetwork } from "testcontainers"
 import type { BindMode, ExecResult } from "testcontainers/dist/src/docker/types"
+import { ExecutionContext } from "ava"
 
 export interface ConnectionDetails {
   connectionString: string
@@ -58,10 +59,12 @@ type IsNeverType<T> = [T] extends [never] ? true : false
 
 export type GetTestPostgresDatabase<Params> = IsNeverType<Params> extends true
   ? (
+      t: ExecutionContext,
       args?: null,
       options?: GetTestPostgresDatabaseOptions
     ) => Promise<GetTestPostgresDatabaseResult>
   : (
+      t: ExecutionContext,
       args: Params,
       options?: GetTestPostgresDatabaseOptions
     ) => Promise<GetTestPostgresDatabaseResult>

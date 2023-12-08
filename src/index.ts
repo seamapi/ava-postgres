@@ -18,19 +18,7 @@ import {
 import { Pool } from "pg"
 import { Jsonifiable } from "type-fest"
 import { StartedNetwork } from "testcontainers"
-
-const mapWorkerConnectionDetailsToConnectionDetails = (
-  connectionDetailsFromWorker: ConnectionDetailsFromWorker
-): ConnectionDetails => ({
-  ...connectionDetailsFromWorker,
-  networkDocker: new StartedNetwork(
-    connectionDetailsFromWorker.networkDocker.id,
-    connectionDetailsFromWorker.networkDocker.options
-  ),
-  pool: new Pool({
-    connectionString: connectionDetailsFromWorker.connectionString,
-  }),
-})
+import { ExecutionContext } from "ava"
 
 const getWorker = async (
   initialData: InitialWorkerData,
@@ -75,9 +63,43 @@ export const getTestPostgresDatabaseFactory = <
   const workerPromise = getWorker(initialData, options as any)
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
+    t: ExecutionContext,
     params: any,
     getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
   ) => {
+    const mapWorkerConnectionDetailsToConnectionDetails = (
+      connectionDetailsFromWorker: ConnectionDetailsFromWorker
+    ): ConnectionDetails => {
+      const pool = new Pool({
+        connectionString: connectionDetailsFromWorker.connectionString,
+      })
+
+      t.teardown(async () => {
+        try {
+          await pool.end()
+        } catch (error) {
+          if (
+            (error as Error).message.includes(
+              "Called end on pool more than once"
+            )
+          ) {
+            return
+          }
+
+          throw error
+        }
+      })
+
+      return {
+        ...connectionDetailsFromWorker,
+        networkDocker: new StartedNetwork(
+          connectionDetailsFromWorker.networkDocker.id,
+          connectionDetailsFromWorker.networkDocker.options
+        ),
+        pool,
+      }
+    }
+
     const worker = await workerPromise
     await worker.available
 
@@ -153,6 +175,7 @@ export const getTestPostgresDatabaseFactory = <
                     ),
             }
           } finally {
+            // Otherwise connection will be killed by worker when converting to template
             await connectionDetails.pool.end()
           }
         }
