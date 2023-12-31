@@ -266,7 +266,14 @@ export class Worker {
   }
 
   private async startContainer() {
-    const network = await new Network().start()
+    const network = await new Network({
+      options: {
+        // Prevents shared worker issues by making sure the network has enough
+        // addresses
+        // https://github.com/docker/for-linux/issues/599#issuecomment-581087478
+        subnet: "172.24.24.0/24",
+      },
+    }).start()
     let container = new GenericContainer(
       `postgres:${this.initialData.postgresVersion}`
     )
