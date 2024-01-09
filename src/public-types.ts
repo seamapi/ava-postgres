@@ -1,13 +1,13 @@
 import type { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
-import type { StartedNetwork } from "testcontainers"
-import type { BindMode, ExecResult } from "testcontainers/dist/src/docker/types"
 import { ExecutionContext } from "ava"
+import { ExecResult } from "testcontainers"
+import { BindMode } from "testcontainers/build/types"
 
 export interface ConnectionDetails {
   connectionString: string
   connectionStringDocker: string
-  networkDocker: StartedNetwork
+  dockerNetworkId: string
 
   host: string
   port: number

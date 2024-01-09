@@ -1,5 +1,10 @@
 import pg from "pg"
-import { GenericContainer, Network } from "testcontainers"
+import {
+  GenericContainer,
+  Network,
+  StartedNetwork,
+  getContainerRuntimeClient,
+} from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
 import {
@@ -251,12 +256,7 @@ export class Worker {
       connectionStringDocker: `postgresql://postgres:@${container
         .getName()
         .replace("/", "")}:5432/${databaseName}`,
-      networkDocker: {
-        id: network.getId(),
-        // StartedNetwork.options is private, however we must access it here
-        // using type-safe string index notation for serialization.
-        options: network["options"],
-      },
+      dockerNetworkId: network.getId(),
       host: container.getHost(),
       port: container.getMappedPort(5432),
       database: databaseName,

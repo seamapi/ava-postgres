@@ -1,25 +1,16 @@
-import type { StartedNetwork } from "testcontainers"
+import type { ExecResult, StartedNetwork } from "testcontainers"
 import type { Jsonifiable } from "type-fest"
 import type {
   ConnectionDetails,
   GetTestPostgresDatabaseFactoryOptions,
 } from "./public-types"
-import type { ExecResult } from "testcontainers/dist/src/docker/types"
 
 export interface InitialWorkerData {
   postgresVersion: string
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
 }
 
-export type ConnectionDetailsFromWorker = Omit<
-  ConnectionDetails,
-  "pool" | "networkDocker"
-> & {
-  networkDocker: {
-    id: ConstructorParameters<typeof StartedNetwork>[0]
-    options: ConstructorParameters<typeof StartedNetwork>[1]
-  }
-}
+export type ConnectionDetailsFromWorker = Omit<ConnectionDetails, "pool">
 
 export interface RequestDatabaseFromWorkerMessage {
   type: "GET_TEST_DATABASE"
