@@ -92,10 +92,6 @@ export const getTestPostgresDatabaseFactory = <
 
       return {
         ...connectionDetailsFromWorker,
-        networkDocker: new StartedNetwork(
-          connectionDetailsFromWorker.networkDocker.id,
-          connectionDetailsFromWorker.networkDocker.options
-        ),
         pool,
       }
     }

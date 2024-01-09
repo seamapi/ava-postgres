@@ -1,7 +1,11 @@
 import test from "ava"
 import { Pool } from "pg"
 import { getTestPostgresDatabaseFactory } from "~/index"
-import { GenericContainer } from "testcontainers"
+import {
+  GenericContainer,
+  StartedNetwork,
+  getContainerRuntimeClient,
+} from "testcontainers"
 
 const getTestServer = getTestPostgresDatabaseFactory({
   postgresVersion: process.env.POSTGRES_VERSION,
@@ -31,11 +35,19 @@ test("using connection details manually works", async (t) => {
 })
 
 test("connect from another container", async (t) => {
-  const { connectionStringDocker, networkDocker } = await getTestServer(t)
+  const { connectionStringDocker, dockerNetworkId } = await getTestServer(t)
+
+  const testContainersClient = await getContainerRuntimeClient()
+  const internalNetwork = testContainersClient.network.getById(dockerNetworkId)
+  const network = new StartedNetwork(
+    testContainersClient,
+    dockerNetworkId,
+    internalNetwork
+  )
 
   const container = await new GenericContainer("postgres:14")
     .withEnvironment({ POSTGRES_HOST_AUTH_METHOD: "trust" })
-    .withNetwork(networkDocker)
+    .withNetwork(network)
     .withStartupTimeout(120_000)
     .start()
 
