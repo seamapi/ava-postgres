@@ -32,6 +32,16 @@ export interface GetTestPostgresDatabaseFactoryOptions<
       mode?: BindMode
     }[]
   }
+
+  /**
+   * Pgbouncer container settings, disabled by default. Container settings are
+   * by default inherited from parent "container" param.
+   */
+  pgbouncer?: {
+    enabled: boolean
+    version?: string
+  }
+
   /**
    * Test workers will be de-duped by this key. You probably don't need to set this.
    */
