@@ -8,6 +8,7 @@ import type {
 export interface InitialWorkerData {
   postgresVersion: string
   containerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["container"]
+  pgbouncerOptions?: GetTestPostgresDatabaseFactoryOptions<any>["pgbouncer"]
 }
 
 export type ConnectionDetailsFromWorker = Omit<ConnectionDetails, "pool">

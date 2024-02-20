@@ -300,6 +300,23 @@ export class Worker {
       )
     }
 
+    if (this.initialData.pgbouncerOptions?.enabled) {
+      const pgbouncerContainer = new GenericContainer("edoburu/pgbouncer")
+        .withExposedPorts(6432)
+        .withEnvironment({
+          PGBOUNCER_LISTEN_PORT: "6432",
+          PGBOUNCER_POOL_MODE: "transaction",
+          PGBOUNCER_MAX_CLIENT_CONN: "1000",
+          PGBOUNCER_DEFAULT_POOL_SIZE: "1000",
+          PGBOUNCER_SERVER_IDLE_TIMEOUT: "240",
+          PGBOUNCER_SERVER_CONNECT_TIMEOUT: "15",
+          PGBOUNCER_QUERY_TIMEOUT: "240",
+          PGBOUNCER_QUERY_WAIT_TIMEOUT: "240",
+        })
+        .withStartupTimeout(120_000)
+        .withNetwork(network)
+    }
+
     return {
       container: startedContainer,
       network,
