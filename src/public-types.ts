@@ -33,7 +33,15 @@ export interface GetTestPostgresDatabaseFactoryOptions<
     }[]
   }
   /**
-   * Test workers will be de-duped by this key. You probably don't need to set this.
+   * You probably don't need to set this.
+   *
+   * AVA Shared Workers are used to manage the Postgres container. You can set this key
+   * to create multiple Shared Workers, each with a separate Postgres container it manages.
+   * For example, setting `app1` on one factory, and `app2` on another factory will mean
+   * that two separate containers are managed by the separate factories.
+   *
+   * Note that this is different to the key that's passed in to `getTestPostgresDatabase`
+   * to share a database between AVA  _test workers_. See GetTestPostgresDatabaseOptions.
    */
   workerDedupeKey?: string
   beforeTemplateIsBaked?: (options: {
