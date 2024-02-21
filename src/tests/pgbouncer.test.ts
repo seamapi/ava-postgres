@@ -2,9 +2,13 @@ import test from "ava"
 import { QueryResult } from "pg"
 import { getTestPostgresDatabaseFactory } from "~/index"
 
-test("works with multiple versions", async (t) => {
+test("pgbouncer", async (t) => {
   const getPostgres13 = getTestPostgresDatabaseFactory({
     postgresVersion: "13.5",
+    pgbouncer: {
+      enabled: true,
+      version: "1.22.0",
+    },
   })
 
   const postgres13 = await getPostgres13(t)
@@ -17,5 +21,4 @@ test("works with multiple versions", async (t) => {
   }
 
   t.is(parseVersion(await postgres13.pool.query("SELECT version()")), "13.5")
-  t.is(parseVersion(await postgres14.pool.query("SELECT version()")), "14.5")
 })
