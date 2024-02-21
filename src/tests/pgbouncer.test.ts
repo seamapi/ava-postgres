@@ -14,4 +14,5 @@ test("pgbouncer", async (t) => {
   const postgres13 = await getPostgres13(t)
 
   t.truthy(postgres13.pgbouncerConnectionString)
+  await postgres13.pool.query("SELECT 1")
 })

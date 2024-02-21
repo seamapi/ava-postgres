@@ -73,7 +73,9 @@ export const getTestPostgresDatabaseFactory = <
       connectionDetailsFromWorker: ConnectionDetailsFromWorker
     ): ConnectionDetails => {
       const pool = new Pool({
-        connectionString: connectionDetailsFromWorker.connectionString,
+        connectionString:
+          connectionDetailsFromWorker.pgbouncerConnectionString ??
+          connectionDetailsFromWorker.connectionString,
       })
 
       t.teardown(async () => {

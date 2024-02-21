@@ -330,6 +330,7 @@ export class Worker {
           POOL_MODE:
             this.initialData.pgbouncerOptions?.poolMode ?? "transaction",
           LISTEN_PORT: "6432",
+          AUTH_TYPE: "trust",
         })
         .withStartupTimeout(120_000)
         .withNetwork(network)
