@@ -20,7 +20,9 @@ test("pgbouncer", async (t) => {
   t.is(result.rows[0].result, 1)
 
   // can't use a transaction with statement pool mode
-  const err = await t.throwsAsync(postgres13.pool.query(`BEGIN TRANSACTION`))
+  const err = await t.throwsAsync(
+    postgres13.pgbouncerPool!.query(`BEGIN TRANSACTION`)
+  )
 
   t.truthy(
     err!

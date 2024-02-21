@@ -18,6 +18,9 @@ export interface ConnectionDetails {
   database: string
 
   pool: Pool
+
+  // TODO if pgbouncer is enabled, this is defined, otherwise undefined
+  pgbouncerPool?: Pool
 }
 
 export interface GetTestPostgresDatabaseFactoryOptions<
