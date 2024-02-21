@@ -42,6 +42,7 @@ export interface GetTestPostgresDatabaseFactoryOptions<
   pgbouncer?: {
     enabled: boolean
     version?: string
+    poolMode?: "session" | "transaction"
   }
 
   /**
