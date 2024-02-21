@@ -7,6 +7,8 @@ import { BindMode } from "testcontainers/build/types"
 export interface ConnectionDetails {
   connectionString: string
   connectionStringDocker: string
+  pgbouncerConnectionString?: string
+  pgbouncerConnectionStringDocker?: string
   dockerNetworkId: string
 
   host: string
@@ -16,6 +18,9 @@ export interface ConnectionDetails {
   database: string
 
   pool: Pool
+
+  // TODO if pgbouncer is enabled, this is defined, otherwise undefined
+  pgbouncerPool?: Pool
 }
 
 export interface GetTestPostgresDatabaseFactoryOptions<
@@ -32,6 +37,16 @@ export interface GetTestPostgresDatabaseFactoryOptions<
       mode?: BindMode
     }[]
   }
+
+  /**
+   * Pgbouncer container settings, disabled by default.
+   */
+  pgbouncer?: {
+    enabled: boolean
+    version?: string
+    poolMode?: "session" | "transaction" | "statement"
+  }
+
   /**
    * Test workers will be de-duped by this key. You probably don't need to set this.
    */

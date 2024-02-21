@@ -178,7 +178,9 @@ export class Worker {
     const databaseName = getRandomDatabaseName()
 
     // Create database
-    const { postgresClient, container } = await this.startContainerPromise
+    const { postgresClient, container, pgbouncerContainer } = await this
+      .startContainerPromise
+
     await postgresClient.query(`CREATE DATABASE ${databaseName};`)
 
     const msg = message.reply({
@@ -246,16 +248,29 @@ export class Worker {
   }
 
   private async getConnectionDetails(databaseName: string) {
-    const { container, network } = await this.startContainerPromise
+    const { container, network, pgbouncerContainer } = await this
+      .startContainerPromise
     const externalDatabaseUrl = `postgresql://postgres:@${container.getHost()}:${container.getMappedPort(
       5432
     )}/${databaseName}`
+
+    let pgbouncerConnectionString, pgbouncerConnectionStringDocker
+    if (pgbouncerContainer) {
+      pgbouncerConnectionString = `postgresql://postgres:@${pgbouncerContainer.getHost()}:${pgbouncerContainer.getMappedPort(
+        6432
+      )}/${databaseName}`
+      pgbouncerConnectionStringDocker = `postgresql://postgres:@${pgbouncerContainer
+        .getName()
+        .replace("/", "")}:5432/${databaseName}`
+    }
 
     return {
       connectionString: externalDatabaseUrl,
       connectionStringDocker: `postgresql://postgres:@${container
         .getName()
         .replace("/", "")}:5432/${databaseName}`,
+      pgbouncerConnectionString,
+      pgbouncerConnectionStringDocker,
       dockerNetworkId: network.getId(),
       host: container.getHost(),
       port: container.getMappedPort(5432),
@@ -300,13 +315,35 @@ export class Worker {
       )
     }
 
+    const connectionString = `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
+      5432
+    )}/postgres`
+
+    let startedPgbouncerContainer
+    if (this.initialData.pgbouncerOptions?.enabled) {
+      const pgbouncerContainer = new GenericContainer("edoburu/pgbouncer")
+        .withExposedPorts(6432)
+        .withName(getRandomDatabaseName())
+        .withEnvironment({
+          DB_HOST: startedContainer.getName().replace("/", ""),
+          DB_USER: "postgres",
+          DB_NAME: "*",
+          POOL_MODE:
+            this.initialData.pgbouncerOptions?.poolMode ?? "transaction",
+          LISTEN_PORT: "6432",
+          AUTH_TYPE: "trust",
+        })
+        .withStartupTimeout(120_000)
+        .withNetwork(network)
+      startedPgbouncerContainer = await pgbouncerContainer.start()
+    }
+
     return {
       container: startedContainer,
+      pgbouncerContainer: startedPgbouncerContainer,
       network,
       postgresClient: new pg.Pool({
-        connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
-          5432
-        )}/postgres`,
+        connectionString,
       }),
     }
   }

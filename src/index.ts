@@ -58,6 +58,7 @@ export const getTestPostgresDatabaseFactory = <
   const initialData: InitialWorkerData = {
     postgresVersion: options?.postgresVersion ?? "14",
     containerOptions: options?.container,
+    pgbouncerOptions: options?.pgbouncer,
   }
 
   const workerPromise = getWorker(initialData, options as any)
@@ -74,9 +75,18 @@ export const getTestPostgresDatabaseFactory = <
         connectionString: connectionDetailsFromWorker.connectionString,
       })
 
+      let pgbouncerPool: Pool | undefined
+      if (connectionDetailsFromWorker.pgbouncerConnectionString) {
+        pgbouncerPool = new Pool({
+          connectionString:
+            connectionDetailsFromWorker.pgbouncerConnectionString,
+        })
+      }
+
       t.teardown(async () => {
         try {
           await pool.end()
+          await pgbouncerPool?.end()
         } catch (error) {
           if (
             (error as Error).message.includes(
@@ -93,6 +103,7 @@ export const getTestPostgresDatabaseFactory = <
       return {
         ...connectionDetailsFromWorker,
         pool,
+        pgbouncerPool,
       }
     }
 
