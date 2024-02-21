@@ -320,13 +320,12 @@ export class Worker {
     )}/postgres`
 
     let startedPgbouncerContainer
-    console.log("pgbouncerOptions", this.initialData.pgbouncerOptions)
     if (this.initialData.pgbouncerOptions?.enabled) {
       const pgbouncerContainer = new GenericContainer("edoburu/pgbouncer")
         .withExposedPorts(6432)
         .withName(getRandomDatabaseName())
         .withEnvironment({
-          DB_HOST: startedContainer.getHost(),
+          DB_HOST: startedContainer.getName().replace("/", ""),
           DB_USER: "postgres",
           DB_NAME: "*",
           POOL_MODE:
@@ -336,9 +335,7 @@ export class Worker {
         })
         .withStartupTimeout(120_000)
         .withNetwork(network)
-      console.log("attempting to start pg bouncer")
       startedPgbouncerContainer = await pgbouncerContainer.start()
-      console.log("finishing starting pg bouncer")
     }
 
     return {

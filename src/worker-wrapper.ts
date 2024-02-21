@@ -18,7 +18,6 @@ const workerWrapper = async (
 
   const { initialData } = protocol
 
-  console.log("creating worker with initialData", initialData)
   const worker = new Worker(initialData as any)
 
   for await (const testWorker of protocol.testWorkers()) {
