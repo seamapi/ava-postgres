@@ -315,20 +315,27 @@ export class Worker {
       )
     }
 
+    const connectionString = `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
+      5432
+    )}/postgres`
+
     let startedPgbouncerContainer
+    console.log("pgbouncerOptions", this.initialData.pgbouncerOptions)
     if (this.initialData.pgbouncerOptions?.enabled) {
       const pgbouncerContainer = new GenericContainer("edoburu/pgbouncer")
         .withExposedPorts(6432)
         .withName(getRandomDatabaseName())
         .withEnvironment({
-          PGBOUNCER_LISTEN_PORT: "6432",
-          PGBOUNCER_POOL_MODE: "transaction",
-          PGBOUNCER_MAX_CLIENT_CONN: "1000",
-          PGBOUNCER_DEFAULT_POOL_SIZE: "1000",
-          PGBOUNCER_SERVER_IDLE_TIMEOUT: "240",
-          PGBOUNCER_SERVER_CONNECT_TIMEOUT: "15",
-          PGBOUNCER_QUERY_TIMEOUT: "240",
-          PGBOUNCER_QUERY_WAIT_TIMEOUT: "240",
+          DATABASE_URL: connectionString,
+          // PGBOUNCER_LISTEN_PORT: "6432",
+          POOL_MODE: "transaction",
+          LISTEN_PORT: "6432",
+          // PGBOUNCER_MAX_CLIENT_CONN: "1000",
+          // PGBOUNCER_DEFAULT_POOL_SIZE: "1000",
+          // PGBOUNCER_SERVER_IDLE_TIMEOUT: "240",
+          // PGBOUNCER_SERVER_CONNECT_TIMEOUT: "15",
+          // PGBOUNCER_QUERY_TIMEOUT: "240",
+          // PGBOUNCER_QUERY_WAIT_TIMEOUT: "240",
         })
         .withStartupTimeout(120_000)
         .withNetwork(network)
@@ -342,9 +349,7 @@ export class Worker {
       pgbouncerContainer: startedPgbouncerContainer,
       network,
       postgresClient: new pg.Pool({
-        connectionString: `postgresql://postgres:@${startedContainer.getHost()}:${startedContainer.getMappedPort(
-          5432
-        )}/postgres`,
+        connectionString,
       }),
     }
   }

@@ -55,9 +55,11 @@ export const getTestPostgresDatabaseFactory = <
 >(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
 ) => {
+  console.log("options", options)
   const initialData: InitialWorkerData = {
     postgresVersion: options?.postgresVersion ?? "14",
     containerOptions: options?.container,
+    pgbouncerOptions: options?.pgbouncer,
   }
 
   const workerPromise = getWorker(initialData, options as any)
