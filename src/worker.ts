@@ -254,9 +254,12 @@ export class Worker {
       5432
     )}/${databaseName}`
 
-    let pgbouncerConnectionString
+    let pgbouncerConnectionString, pgbouncerConnectionStringDocker
     if (pgbouncerContainer) {
-      pgbouncerConnectionString = `postgresql://postgres:@${pgbouncerContainer
+      pgbouncerConnectionString = `postgresql://postgres:@${pgbouncerContainer.getHost()}:${pgbouncerContainer.getMappedPort(
+        6432
+      )}/${databaseName}`
+      pgbouncerConnectionStringDocker = `postgresql://postgres:@${pgbouncerContainer
         .getName()
         .replace("/", "")}:5432/${databaseName}`
     }
@@ -267,6 +270,7 @@ export class Worker {
         .getName()
         .replace("/", "")}:5432/${databaseName}`,
       pgbouncerConnectionString,
+      pgbouncerConnectionStringDocker,
       dockerNetworkId: network.getId(),
       host: container.getHost(),
       port: container.getMappedPort(5432),
@@ -328,7 +332,9 @@ export class Worker {
         })
         .withStartupTimeout(120_000)
         .withNetwork(network)
+      console.log("attempting to start pg bouncer")
       startedPgbouncerContainer = await pgbouncerContainer.start()
+      console.log("finishing starting pg bouncer")
     }
 
     return {

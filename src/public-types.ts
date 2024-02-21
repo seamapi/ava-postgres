@@ -7,6 +7,8 @@ import { BindMode } from "testcontainers/build/types"
 export interface ConnectionDetails {
   connectionString: string
   connectionStringDocker: string
+  pgbouncerConnectionString?: string
+  pgbouncerConnectionStringDocker?: string
   dockerNetworkId: string
 
   host: string

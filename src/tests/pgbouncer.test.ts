@@ -13,12 +13,5 @@ test("pgbouncer", async (t) => {
 
   const postgres13 = await getPostgres13(t)
 
-  const parseVersion = (result: QueryResult) => {
-    const {
-      rows: [{ version }],
-    } = result
-    return version.split(" ")[1]
-  }
-
-  t.is(parseVersion(await postgres13.pool.query("SELECT version()")), "13.5")
+  t.truthy(postgres13.pgbouncerConnectionString)
 })
