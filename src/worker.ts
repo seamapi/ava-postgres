@@ -326,12 +326,13 @@ export class Worker {
         .withExposedPorts(6432)
         .withName(getRandomDatabaseName())
         .withEnvironment({
-          DATABASE_URL: connectionString,
+          DB_HOST: startedContainer.getHost(),
+          DB_USER: "postgres",
+          DB_NAME: "*",
           POOL_MODE:
             this.initialData.pgbouncerOptions?.poolMode ?? "transaction",
           LISTEN_PORT: "6432",
           AUTH_TYPE: "trust",
-          AUTH_USER: "postgres",
         })
         .withStartupTimeout(120_000)
         .withNetwork(network)
