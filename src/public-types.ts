@@ -39,8 +39,7 @@ export interface GetTestPostgresDatabaseFactoryOptions<
   }
 
   /**
-   * Pgbouncer container settings, disabled by default. Container settings are
-   * by default inherited from parent "container" param.
+   * Pgbouncer container settings, disabled by default.
    */
   pgbouncer?: {
     enabled: boolean
