@@ -60,5 +60,8 @@
     "build": "tsup",
     "format": "prettier -w .",
     "format:check": "prettier --check ."
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

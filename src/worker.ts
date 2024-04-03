@@ -11,12 +11,6 @@ import type { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
 
 type WorkerRpc = BirpcReturn<TestWorkerFunctions, SharedWorkerFunctions>
 
-class TestWorkerShutdownError extends Error {
-  constructor() {
-    super("Test worker unexpectedly shut down")
-  }
-}
-
 export class Worker {
   private paramsHashToTemplateCreationPromise = new Map<
     string,
