@@ -1,21 +1,15 @@
 import pg from "pg"
-import {
-  GenericContainer,
-  Network,
-  StartedNetwork,
-  getContainerRuntimeClient,
-} from "testcontainers"
+import { GenericContainer, Network } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
-import {
-  GotDatabaseMessage,
-  InitialWorkerData,
-  MessageFromWorker,
-  MessageToWorker,
-  WorkerMessage,
-} from "./internal-types"
+import type { InitialWorkerData } from "./internal-types"
 import getRandomDatabaseName from "./lib/get-random-database-name"
-import { SharedWorker } from "ava/plugin"
+import type { SharedWorker } from "ava/plugin"
+import { type BirpcReturn, type ChannelOptions, createBirpc } from "birpc"
+import { once } from "node:events"
+import type { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
+
+type WorkerRpc = BirpcReturn<TestWorkerFunctions, SharedWorkerFunctions>
 
 class TestWorkerShutdownError extends Error {
   constructor() {
@@ -31,7 +25,6 @@ export class Worker {
   private keyToDatabaseName = new Map<string, string>()
   private keyToCreationMutex = new Map<string, Mutex>()
   private getOrCreateKeyToCreationMutex = new Mutex()
-  private createdDatabasesByTestWorkerId = new Map<string, string[]>()
   private getOrCreateTemplateNameMutex = new Mutex()
 
   private startContainerPromise: ReturnType<typeof this.startContainer>
@@ -41,174 +34,140 @@ export class Worker {
   }
 
   public async handleTestWorker(testWorker: SharedWorker.TestWorker<unknown>) {
+    let workerRpcCallback: (data: any) => void
+    const rpcChannel: ChannelOptions = {
+      post: (data) => testWorker.publish(data),
+      on: (data) => {
+        workerRpcCallback = data
+      },
+    }
+
+    const messageHandlerAbortController = new AbortController()
+    const messageHandlerPromise = Promise.race([
+      once(messageHandlerAbortController.signal, "abort"),
+      (async () => {
+        for await (const msg of testWorker.subscribe()) {
+          workerRpcCallback!(msg.data)
+
+          if (messageHandlerAbortController.signal.aborted) {
+            break
+          }
+        }
+      })(),
+    ])
+
     testWorker.teardown(async () => {
-      await this.handleTestWorkerTeardown(testWorker)
+      messageHandlerAbortController.abort()
+      await messageHandlerPromise
     })
 
-    for await (const message of testWorker.subscribe()) {
-      await this.handleMessage(message as any)
-    }
+    const rpc: WorkerRpc = createBirpc<
+      TestWorkerFunctions,
+      SharedWorkerFunctions
+    >(
+      {
+        getTestDatabase: async (options) => {
+          return this.getTestDatabase(options, rpc, (teardown) => {
+            testWorker.teardown(teardown)
+          })
+        },
+        execCommandInContainer: async (command) => {
+          const container = (await this.startContainerPromise).container
+          return container.exec(command)
+        },
+      },
+      rpcChannel
+    )
   }
 
-  public async handleMessage(
-    message: SharedWorker.ReceivedMessage<WorkerMessage>
+  private async getTestDatabase(
+    options: Parameters<SharedWorkerFunctions["getTestDatabase"]>[0],
+    rpc: WorkerRpc,
+    registerTeardown: (teardown: () => Promise<void>) => void
   ) {
-    if (message.data.type === "GET_TEST_DATABASE") {
-      // Get template name
-      const paramsHash = hash(message.data.params ?? null)
-      let neededToCreateTemplate = false
-      // (Mutex avoids race conditions where two identical templates get built)
-      await this.getOrCreateTemplateNameMutex.runExclusive(() => {
-        if (!this.paramsHashToTemplateCreationPromise.has(paramsHash)) {
-          neededToCreateTemplate = true
-          this.paramsHashToTemplateCreationPromise.set(
-            paramsHash,
-            this.createTemplate(message)
-          )
-        }
-      })
-      let templateCreationResult
-      try {
-        templateCreationResult =
-          await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
-      } catch (error) {
-        if (error instanceof TestWorkerShutdownError) {
-          return
-        }
+    // Get template name
+    const paramsHash = hash(options.params ?? null)
+    // (Mutex avoids race conditions where two identical templates get built)
+    await this.getOrCreateTemplateNameMutex.runExclusive(() => {
+      if (!this.paramsHashToTemplateCreationPromise.has(paramsHash)) {
+        this.paramsHashToTemplateCreationPromise.set(
+          paramsHash,
+          this.createTemplate(rpc)
+        )
+      }
+    })
+    const templateCreationResult =
+      await this.paramsHashToTemplateCreationPromise.get(paramsHash)!
 
-        throw error
+    const { templateName, beforeTemplateIsBakedResult } =
+      templateCreationResult!
+
+    // Create database using template
+    const { postgresClient } = await this.startContainerPromise
+
+    // Only relevant when a `key` is provided
+    const fullDatabaseKey = `${paramsHash}-${options.key}`
+
+    let databaseName = options.key
+      ? this.keyToDatabaseName.get(fullDatabaseKey)
+      : undefined
+    if (!databaseName) {
+      const createDatabase = async () => {
+        databaseName = getRandomDatabaseName()
+        await postgresClient.query(
+          `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
+        )
       }
 
-      const {
-        templateName,
-        beforeTemplateIsBakedResult,
-        lastMessage: lastMessageFromTemplateCreation,
-      } = templateCreationResult!
+      if (options.key) {
+        await this.getOrCreateKeyToCreationMutex.runExclusive(() => {
+          if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
+            this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
+          }
+        })
 
-      // Create database using template
-      const { postgresClient } = await this.startContainerPromise
+        const mutex = this.keyToCreationMutex.get(fullDatabaseKey)!
 
-      // Only relevant when a `key` is provided
-      const fullDatabaseKey = `${paramsHash}-${message.data.key}`
+        await mutex.runExclusive(async () => {
+          if (!this.keyToDatabaseName.has(fullDatabaseKey)) {
+            await createDatabase()
+            this.keyToDatabaseName.set(fullDatabaseKey, databaseName!)
+          }
 
-      let databaseName = message.data.key
-        ? this.keyToDatabaseName.get(fullDatabaseKey)
-        : undefined
-      if (!databaseName) {
-        const createDatabase = async () => {
-          databaseName = getRandomDatabaseName()
-          await postgresClient.query(
-            `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
-          )
-          this.createdDatabasesByTestWorkerId.set(
-            message.testWorker.id,
-            (
-              this.createdDatabasesByTestWorkerId.get(message.testWorker.id) ??
-              []
-            ).concat(databaseName)
-          )
-        }
-
-        if (message.data.key) {
-          await this.getOrCreateKeyToCreationMutex.runExclusive(() => {
-            if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
-              this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
-            }
-          })
-
-          const mutex = this.keyToCreationMutex.get(fullDatabaseKey)!
-
-          await mutex.runExclusive(async () => {
-            if (!this.keyToDatabaseName.has(fullDatabaseKey)) {
-              await createDatabase()
-              this.keyToDatabaseName.set(fullDatabaseKey, databaseName!)
-            }
-
-            databaseName = this.keyToDatabaseName.get(fullDatabaseKey)!
-          })
-        } else {
-          await createDatabase()
-        }
-      }
-
-      const gotDatabaseMessage: GotDatabaseMessage = {
-        type: "GOT_DATABASE",
-        connectionDetails: await this.getConnectionDetails(databaseName!),
-        beforeTemplateIsBakedResult,
-      }
-
-      if (neededToCreateTemplate) {
-        lastMessageFromTemplateCreation.value.reply(gotDatabaseMessage)
+          databaseName = this.keyToDatabaseName.get(fullDatabaseKey)!
+        })
       } else {
-        message.reply(gotDatabaseMessage)
+        await createDatabase()
+      }
+    }
+
+    registerTeardown(async () => {
+      // Don't remove keyed databases
+      if (options.key && this.keyToDatabaseName.has(fullDatabaseKey)) {
+        return
       }
 
-      return
-    }
+      await this.forceDisconnectClientsFrom(databaseName!)
+      await postgresClient.query(`DROP DATABASE ${databaseName}`)
+    })
 
-    throw new Error(`Unknown message: ${JSON.stringify(message.data)}`)
-  }
-
-  private async handleTestWorkerTeardown(
-    testWorker: SharedWorker.TestWorker<unknown>
-  ) {
-    const databases = this.createdDatabasesByTestWorkerId.get(testWorker.id)
-
-    if (databases) {
-      const { postgresClient } = await this.startContainerPromise
-
-      const databasesAssociatedWithKeys = new Set(
-        this.keyToDatabaseName.values()
-      )
-
-      await Promise.all(
-        databases
-          .filter((d) => !databasesAssociatedWithKeys.has(d))
-          .map(async (database) => {
-            await this.forceDisconnectClientsFrom(database)
-            await postgresClient.query(`DROP DATABASE ${database}`)
-          })
-      )
+    return {
+      connectionDetails: await this.getConnectionDetails(databaseName!),
+      beforeTemplateIsBakedResult,
     }
   }
 
-  private async createTemplate(
-    message: SharedWorker.ReceivedMessage<WorkerMessage>
-  ) {
+  private async createTemplate(rpc: WorkerRpc) {
     const databaseName = getRandomDatabaseName()
 
     // Create database
-    const { postgresClient, container, pgbouncerContainer } = await this
-      .startContainerPromise
+    const { postgresClient } = await this.startContainerPromise
 
     await postgresClient.query(`CREATE DATABASE ${databaseName};`)
 
-    const msg = message.reply({
-      type: "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED",
-      connectionDetails: await this.getConnectionDetails(databaseName),
-    })
-
-    let reply = await msg.replies().next()
-
-    if (reply.done) {
-      throw new TestWorkerShutdownError()
-    }
-
-    while (
-      reply.value.data.type !== "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED"
-    ) {
-      const replyValue = reply.value.data as MessageToWorker
-
-      if (replyValue.type === "EXEC_COMMAND_IN_CONTAINER") {
-        const result = await container.exec(replyValue.command)
-        const message = reply.value.reply({
-          type: "EXEC_COMMAND_IN_CONTAINER_RESULT",
-          result,
-        } as MessageFromWorker)
-
-        reply = await message.replies().next()
-      }
-    }
+    const beforeTemplateIsBakedResult = await rpc.runBeforeTemplateIsBakedHook(
+      await this.getConnectionDetails(databaseName)
+    )
 
     // Disconnect any clients
     await this.forceDisconnectClientsFrom(databaseName)
@@ -220,8 +179,7 @@ export class Worker {
 
     return {
       templateName: databaseName,
-      beforeTemplateIsBakedResult: reply.value.data.result,
-      lastMessage: reply,
+      beforeTemplateIsBakedResult,
     }
   }
 

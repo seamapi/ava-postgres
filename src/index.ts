@@ -1,24 +1,23 @@
-import { registerSharedWorker, SharedWorker } from "ava/plugin"
+import { registerSharedWorker } from "ava/plugin"
 import hash from "object-hash"
 import path from "node:path"
-import {
+import type {
   ConnectionDetailsFromWorker,
-  FinishedRunningBeforeTemplateIsBakedHookMessage,
   InitialWorkerData,
-  MessageFromWorker,
-  MessageToWorker,
 } from "./internal-types"
-import {
+import type {
   ConnectionDetails,
   GetTestPostgresDatabase,
   GetTestPostgresDatabaseFactoryOptions,
   GetTestPostgresDatabaseOptions,
-  GetTestPostgresDatabaseResult,
 } from "./public-types"
 import { Pool } from "pg"
-import { Jsonifiable } from "type-fest"
-import { StartedNetwork } from "testcontainers"
-import { ExecutionContext } from "ava"
+import type { Jsonifiable } from "type-fest"
+import type { ExecutionContext } from "ava"
+import { once } from "node:events"
+import { createBirpc } from "birpc"
+import { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
+import { ExecResult } from "testcontainers"
 
 const getWorker = async (
   initialData: InitialWorkerData,
@@ -110,127 +109,80 @@ export const getTestPostgresDatabaseFactory = <
     const worker = await workerPromise
     await worker.available
 
-    const waitForAndHandleReply = async (
-      message: SharedWorker.Plugin.PublishedMessage
-    ): Promise<GetTestPostgresDatabaseResult> => {
-      let reply = await message.replies().next()
-      const replyData: MessageFromWorker = reply.value.data
+    let rpcCallback: (data: any) => void
 
-      if (replyData.type === "RUN_HOOK_BEFORE_TEMPLATE_IS_BAKED") {
-        let result: FinishedRunningBeforeTemplateIsBakedHookMessage["result"] =
-          {
-            status: "success",
-            result: undefined,
-          }
+    const rpc = createBirpc<SharedWorkerFunctions, TestWorkerFunctions>(
+      {
+        runBeforeTemplateIsBakedHook: async (connection) => {
+          if (options?.beforeTemplateIsBaked) {
+            const connectionDetails =
+              mapWorkerConnectionDetailsToConnectionDetails(connection)
 
-        if (options?.beforeTemplateIsBaked) {
-          const connectionDetails =
-            mapWorkerConnectionDetailsToConnectionDetails(
-              replyData.connectionDetails
-            )
+            // Ignore if the pool is terminated by the shared worker
+            // (This happens in CI for some reason even though we drain the pool first.)
+            connectionDetails.pool.on("error", (error) => {
+              if (
+                error.message.includes(
+                  "terminating connection due to administrator command"
+                )
+              ) {
+                return
+              }
 
-          // Ignore if the pool is terminated by the shared worker
-          // (This happens in CI for some reason even though we drain the pool first.)
-          connectionDetails.pool.on("error", (error) => {
-            if (
-              error.message.includes(
-                "terminating connection due to administrator command"
-              )
-            ) {
-              return
-            }
+              throw error
+            })
 
-            throw error
-          })
-
-          try {
             const hookResult = await options.beforeTemplateIsBaked({
               params,
               connection: connectionDetails,
-              containerExec: async (command) => {
-                const request = reply.value.reply({
-                  type: "EXEC_COMMAND_IN_CONTAINER",
-                  command,
-                })
-
-                reply = await request.replies().next()
-
-                if (
-                  reply.value.data.type !== "EXEC_COMMAND_IN_CONTAINER_RESULT"
-                ) {
-                  throw new Error(
-                    "Expected EXEC_COMMAND_IN_CONTAINER_RESULT message"
-                  )
-                }
-
-                return reply.value.data.result
-              },
+              containerExec: async (command): Promise<ExecResult> =>
+                rpc.execCommandInContainer(command),
             })
 
-            result = {
-              status: "success",
-              result: hookResult,
-            }
-          } catch (error) {
-            result = {
-              status: "error",
-              error:
-                error instanceof Error
-                  ? error.stack ?? error.message
-                  : new Error(
-                      "Unknown error type thrown in beforeTemplateIsBaked hook"
-                    ),
-            }
-          } finally {
-            // Otherwise connection will be killed by worker when converting to template
-            await connectionDetails.pool.end()
+            return hookResult
           }
-        }
-
-        try {
-          return waitForAndHandleReply(
-            reply.value.reply({
-              type: "FINISHED_RUNNING_HOOK_BEFORE_TEMPLATE_IS_BAKED",
-              result,
-            } as MessageToWorker)
-          )
-        } catch (error) {
-          if (error instanceof Error && error.name === "DataCloneError") {
-            throw new TypeError(
-              "Return value of beforeTemplateIsBaked() hook could not be serialized. Make sure it returns only JSON-serializable values."
-            )
-          }
-
-          throw error
-        }
-      } else if (replyData.type === "GOT_DATABASE") {
-        if (replyData.beforeTemplateIsBakedResult.status === "error") {
-          if (typeof replyData.beforeTemplateIsBakedResult.error === "string") {
-            throw new Error(replyData.beforeTemplateIsBakedResult.error)
-          }
-
-          throw replyData.beforeTemplateIsBakedResult.error
-        }
-
-        return {
-          ...mapWorkerConnectionDetailsToConnectionDetails(
-            replyData.connectionDetails
-          ),
-          beforeTemplateIsBakedResult:
-            replyData.beforeTemplateIsBakedResult.result,
-        }
+        },
+      },
+      {
+        post: (data) => worker.publish(data),
+        on: (data) => {
+          rpcCallback = data
+        },
       }
-
-      throw new Error(`Unexpected message type: ${replyData.type}`)
-    }
-
-    return waitForAndHandleReply(
-      worker.publish({
-        type: "GET_TEST_DATABASE",
-        params,
-        key: getTestDatabaseOptions?.databaseDedupeKey,
-      } as MessageToWorker)
     )
+
+    const messageHandlerAbortController = new AbortController()
+    const messageHandlerPromise = Promise.race([
+      once(messageHandlerAbortController.signal, "abort"),
+      (async () => {
+        for await (const msg of worker.subscribe()) {
+          rpcCallback!(msg.data)
+
+          if (messageHandlerAbortController.signal.aborted) {
+            break
+          }
+        }
+      })(),
+    ])
+
+    t.teardown(async () => {
+      messageHandlerAbortController.abort()
+      await messageHandlerPromise
+    })
+
+    const testDatabaseConnection = await rpc.getTestDatabase({
+      // todo: rename?
+      key: getTestDatabaseOptions?.databaseDedupeKey,
+      params,
+    })
+
+    return {
+      ...mapWorkerConnectionDetailsToConnectionDetails(
+        testDatabaseConnection.connectionDetails
+      ),
+      beforeTemplateIsBakedResult:
+        testDatabaseConnection.beforeTemplateIsBakedResult,
+    }
   }
 
   return getTestPostgresDatabase
