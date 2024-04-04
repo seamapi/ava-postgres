@@ -2,12 +2,15 @@ import pg from "pg"
 import { GenericContainer, Network } from "testcontainers"
 import { Mutex } from "async-mutex"
 import hash from "object-hash"
-import type { InitialWorkerData } from "./internal-types"
+import type {
+  InitialWorkerData,
+  SharedWorkerFunctions,
+  TestWorkerFunctions,
+} from "./internal-types"
 import getRandomDatabaseName from "./lib/get-random-database-name"
 import type { SharedWorker } from "ava/plugin"
 import { type BirpcReturn, type ChannelOptions, createBirpc } from "birpc"
 import { once } from "node:events"
-import type { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
 import type { Jsonifiable } from "type-fest"
 
 type WorkerRpc = BirpcReturn<TestWorkerFunctions, SharedWorkerFunctions>
@@ -54,6 +57,7 @@ export class Worker {
     testWorker.teardown(async () => {
       messageHandlerAbortController.abort()
       await messageHandlerPromise
+      testWorker.publish({ type: "teardown" })
     })
 
     const rpc: WorkerRpc = createBirpc<

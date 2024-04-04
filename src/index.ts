@@ -4,6 +4,8 @@ import path from "node:path"
 import type {
   ConnectionDetailsFromWorker,
   InitialWorkerData,
+  SharedWorkerFunctions,
+  TestWorkerFunctions,
 } from "./internal-types"
 import type {
   ConnectionDetails,
@@ -16,7 +18,6 @@ import type { Jsonifiable } from "type-fest"
 import type { ExecutionContext } from "ava"
 import { once } from "node:events"
 import { createBirpc } from "birpc"
-import { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
 import { ExecResult } from "testcontainers"
 import isPlainObject from "lodash/isPlainObject"
 
@@ -187,23 +188,19 @@ export const getTestPostgresDatabaseFactory = <
     }
   )
 
-  // todo: properly tear down?
-  const messageHandlerAbortController = new AbortController()
-  const messageHandlerPromise = Promise.race([
-    once(messageHandlerAbortController.signal, "abort"),
-    (async () => {
-      const worker = await workerPromise
-      await worker.available
+  // Automatically cleaned up by AVA since each test file runs in a separate worker
+  const _messageHandlerPromise = (async () => {
+    const worker = await workerPromise
+    await worker.available
 
-      for await (const msg of worker.subscribe()) {
-        rpcCallback!(msg.data)
-
-        if (messageHandlerAbortController.signal.aborted) {
-          break
-        }
+    for await (const msg of worker.subscribe()) {
+      if (msg.data.type === "teardown") {
+        console.log("breaking")
+        break
       }
-    })(),
-  ])
+      rpcCallback!(msg.data)
+    }
+  })()
 
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
     t: ExecutionContext,
