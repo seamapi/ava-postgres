@@ -49,6 +49,24 @@ const getWorker = async (
   })
 }
 
+const teardownConnection = async ({
+  pool,
+  pgbouncerPool,
+}: ConnectionDetails) => {
+  try {
+    await pool.end()
+    await pgbouncerPool?.end()
+  } catch (error) {
+    if (
+      (error as Error).message.includes("Called end on pool more than once")
+    ) {
+      return
+    }
+
+    throw error
+  }
+}
+
 export const getTestPostgresDatabaseFactory = <
   Params extends Jsonifiable = never
 >(
@@ -62,124 +80,113 @@ export const getTestPostgresDatabaseFactory = <
 
   const workerPromise = getWorker(initialData, options as any)
 
+  const mapWorkerConnectionDetailsToConnectionDetails = (
+    connectionDetailsFromWorker: ConnectionDetailsFromWorker
+  ): ConnectionDetails => {
+    const pool = new Pool({
+      connectionString: connectionDetailsFromWorker.connectionString,
+    })
+
+    let pgbouncerPool: Pool | undefined
+    if (connectionDetailsFromWorker.pgbouncerConnectionString) {
+      pgbouncerPool = new Pool({
+        connectionString: connectionDetailsFromWorker.pgbouncerConnectionString,
+      })
+    }
+
+    return {
+      ...connectionDetailsFromWorker,
+      pool,
+      pgbouncerPool,
+    }
+  }
+
+  let rpcCallback: (data: any) => void
+  const rpc = createBirpc<SharedWorkerFunctions, TestWorkerFunctions>(
+    {
+      runBeforeTemplateIsBakedHook: async (connection, params) => {
+        if (options?.beforeTemplateIsBaked) {
+          const connectionDetails =
+            mapWorkerConnectionDetailsToConnectionDetails(connection)
+
+          // Ignore if the pool is terminated by the shared worker
+          // (This happens in CI for some reason even though we drain the pool first.)
+          connectionDetails.pool.on("error", (error) => {
+            if (
+              error.message.includes(
+                "terminating connection due to administrator command"
+              )
+            ) {
+              return
+            }
+
+            throw error
+          })
+
+          const hookResult = await options.beforeTemplateIsBaked({
+            params: params as any,
+            connection: connectionDetails,
+            containerExec: async (command): Promise<ExecResult> =>
+              rpc.execCommandInContainer(command),
+          })
+
+          await teardownConnection(connectionDetails)
+
+          return hookResult
+        }
+      },
+    },
+    {
+      post: async (data) => {
+        const worker = await workerPromise
+        await worker.available
+        worker.publish(data)
+      },
+      on: (data) => {
+        rpcCallback = data
+      },
+    }
+  )
+
+  // todo: properly tear down?
+  const messageHandlerAbortController = new AbortController()
+  const messageHandlerPromise = Promise.race([
+    once(messageHandlerAbortController.signal, "abort"),
+    (async () => {
+      const worker = await workerPromise
+      await worker.available
+
+      for await (const msg of worker.subscribe()) {
+        rpcCallback!(msg.data)
+
+        if (messageHandlerAbortController.signal.aborted) {
+          break
+        }
+      }
+    })(),
+  ])
+
   const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
     t: ExecutionContext,
     params: any,
     getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
   ) => {
-    const mapWorkerConnectionDetailsToConnectionDetails = (
-      connectionDetailsFromWorker: ConnectionDetailsFromWorker
-    ): ConnectionDetails => {
-      const pool = new Pool({
-        connectionString: connectionDetailsFromWorker.connectionString,
-      })
-
-      let pgbouncerPool: Pool | undefined
-      if (connectionDetailsFromWorker.pgbouncerConnectionString) {
-        pgbouncerPool = new Pool({
-          connectionString:
-            connectionDetailsFromWorker.pgbouncerConnectionString,
-        })
-      }
-
-      t.teardown(async () => {
-        try {
-          await pool.end()
-          await pgbouncerPool?.end()
-        } catch (error) {
-          if (
-            (error as Error).message.includes(
-              "Called end on pool more than once"
-            )
-          ) {
-            return
-          }
-
-          throw error
-        }
-      })
-
-      return {
-        ...connectionDetailsFromWorker,
-        pool,
-        pgbouncerPool,
-      }
-    }
-
-    const worker = await workerPromise
-    await worker.available
-
-    let rpcCallback: (data: any) => void
-
-    const rpc = createBirpc<SharedWorkerFunctions, TestWorkerFunctions>(
-      {
-        runBeforeTemplateIsBakedHook: async (connection) => {
-          if (options?.beforeTemplateIsBaked) {
-            const connectionDetails =
-              mapWorkerConnectionDetailsToConnectionDetails(connection)
-
-            // Ignore if the pool is terminated by the shared worker
-            // (This happens in CI for some reason even though we drain the pool first.)
-            connectionDetails.pool.on("error", (error) => {
-              if (
-                error.message.includes(
-                  "terminating connection due to administrator command"
-                )
-              ) {
-                return
-              }
-
-              throw error
-            })
-
-            const hookResult = await options.beforeTemplateIsBaked({
-              params,
-              connection: connectionDetails,
-              containerExec: async (command): Promise<ExecResult> =>
-                rpc.execCommandInContainer(command),
-            })
-
-            return hookResult
-          }
-        },
-      },
-      {
-        post: (data) => worker.publish(data),
-        on: (data) => {
-          rpcCallback = data
-        },
-      }
-    )
-
-    const messageHandlerAbortController = new AbortController()
-    const messageHandlerPromise = Promise.race([
-      once(messageHandlerAbortController.signal, "abort"),
-      (async () => {
-        for await (const msg of worker.subscribe()) {
-          rpcCallback!(msg.data)
-
-          if (messageHandlerAbortController.signal.aborted) {
-            break
-          }
-        }
-      })(),
-    ])
-
-    t.teardown(async () => {
-      messageHandlerAbortController.abort()
-      await messageHandlerPromise
-    })
-
     const testDatabaseConnection = await rpc.getTestDatabase({
       // todo: rename?
       key: getTestDatabaseOptions?.databaseDedupeKey,
       params,
     })
 
+    const connectionDetails = mapWorkerConnectionDetailsToConnectionDetails(
+      testDatabaseConnection.connectionDetails
+    )
+
+    t.teardown(async () => {
+      await teardownConnection(connectionDetails)
+    })
+
     return {
-      ...mapWorkerConnectionDetailsToConnectionDetails(
-        testDatabaseConnection.connectionDetails
-      ),
+      ...connectionDetails,
       beforeTemplateIsBakedResult:
         testDatabaseConnection.beforeTemplateIsBakedResult,
     }

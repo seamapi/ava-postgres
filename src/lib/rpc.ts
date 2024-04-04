@@ -4,7 +4,8 @@ import type { ConnectionDetailsFromWorker } from "~/internal-types"
 
 export interface TestWorkerFunctions {
   runBeforeTemplateIsBakedHook: (
-    connectionDetails: ConnectionDetailsFromWorker
+    connectionDetails: ConnectionDetailsFromWorker,
+    params?: Jsonifiable
   ) => Promise<unknown>
 }
 

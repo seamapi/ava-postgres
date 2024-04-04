@@ -8,6 +8,7 @@ import type { SharedWorker } from "ava/plugin"
 import { type BirpcReturn, type ChannelOptions, createBirpc } from "birpc"
 import { once } from "node:events"
 import type { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
+import type { Jsonifiable } from "type-fest"
 
 type WorkerRpc = BirpcReturn<TestWorkerFunctions, SharedWorkerFunctions>
 
@@ -86,7 +87,7 @@ export class Worker {
       if (!this.paramsHashToTemplateCreationPromise.has(paramsHash)) {
         this.paramsHashToTemplateCreationPromise.set(
           paramsHash,
-          this.createTemplate(rpc)
+          this.createTemplate(rpc, options.params)
         )
       }
     })
@@ -151,7 +152,7 @@ export class Worker {
     }
   }
 
-  private async createTemplate(rpc: WorkerRpc) {
+  private async createTemplate(rpc: WorkerRpc, params?: Jsonifiable) {
     const databaseName = getRandomDatabaseName()
 
     // Create database
@@ -160,7 +161,8 @@ export class Worker {
     await postgresClient.query(`CREATE DATABASE ${databaseName};`)
 
     const beforeTemplateIsBakedResult = await rpc.runBeforeTemplateIsBakedHook(
-      await this.getConnectionDetails(databaseName)
+      await this.getConnectionDetails(databaseName),
+      params
     )
 
     // Disconnect any clients
