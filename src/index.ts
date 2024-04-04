@@ -194,10 +194,6 @@ export const getTestPostgresDatabaseFactory = <
     await worker.available
 
     for await (const msg of worker.subscribe()) {
-      if (msg.data.type === "teardown") {
-        console.log("breaking")
-        break
-      }
       rpcCallback!(msg.data)
     }
   })()

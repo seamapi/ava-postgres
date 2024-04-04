@@ -57,7 +57,6 @@ export class Worker {
     testWorker.teardown(async () => {
       messageHandlerAbortController.abort()
       await messageHandlerPromise
-      testWorker.publish({ type: "teardown" })
     })
 
     const rpc: WorkerRpc = createBirpc<
