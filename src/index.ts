@@ -18,6 +18,39 @@ import { once } from "node:events"
 import { createBirpc } from "birpc"
 import { SharedWorkerFunctions, TestWorkerFunctions } from "./lib/rpc"
 import { ExecResult } from "testcontainers"
+import isPlainObject from "lodash/isPlainObject"
+
+// https://stackoverflow.com/a/30580513
+const isSerializable = (obj: Record<any, any>): boolean => {
+  var isNestedSerializable
+  function isPlain(val: any) {
+    return (
+      typeof val === "undefined" ||
+      typeof val === "string" ||
+      typeof val === "boolean" ||
+      typeof val === "number" ||
+      Array.isArray(val) ||
+      isPlainObject(val)
+    )
+  }
+  if (!isPlain(obj)) {
+    return false
+  }
+  for (var property in obj) {
+    if (obj.hasOwnProperty(property)) {
+      if (!isPlain(obj[property])) {
+        return false
+      }
+      if (typeof obj[property] == "object") {
+        isNestedSerializable = isSerializable(obj[property])
+        if (!isNestedSerializable) {
+          return false
+        }
+      }
+    }
+  }
+  return true
+}
 
 const getWorker = async (
   initialData: InitialWorkerData,
@@ -131,6 +164,12 @@ export const getTestPostgresDatabaseFactory = <
           })
 
           await teardownConnection(connectionDetails)
+
+          if (hookResult && !isSerializable(hookResult)) {
+            throw new TypeError(
+              "Return value of beforeTemplateIsBaked() hook could not be serialized. Make sure it returns only JSON-serializable values."
+            )
+          }
 
           return hookResult
         }
