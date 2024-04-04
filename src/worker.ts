@@ -105,9 +105,9 @@ export class Worker {
     const { postgresClient } = await this.startContainerPromise
 
     // Only relevant when a `key` is provided
-    const fullDatabaseKey = `${paramsHash}-${options.key}`
+    const fullDatabaseKey = `${paramsHash}-${options.databaseDedupeKey}`
 
-    let databaseName = options.key
+    let databaseName = options.databaseDedupeKey
       ? this.keyToDatabaseName.get(fullDatabaseKey)
       : undefined
     if (!databaseName) {
@@ -118,7 +118,7 @@ export class Worker {
         )
       }
 
-      if (options.key) {
+      if (options.databaseDedupeKey) {
         await this.getOrCreateKeyToCreationMutex.runExclusive(() => {
           if (!this.keyToCreationMutex.has(fullDatabaseKey)) {
             this.keyToCreationMutex.set(fullDatabaseKey, new Mutex())
@@ -142,7 +142,10 @@ export class Worker {
 
     registerTeardown(async () => {
       // Don't remove keyed databases
-      if (options.key && this.keyToDatabaseName.has(fullDatabaseKey)) {
+      if (
+        options.databaseDedupeKey &&
+        this.keyToDatabaseName.has(fullDatabaseKey)
+      ) {
         return
       }
 

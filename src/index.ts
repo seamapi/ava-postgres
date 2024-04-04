@@ -208,8 +208,7 @@ export const getTestPostgresDatabaseFactory = <
     getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
   ) => {
     const testDatabaseConnection = await rpc.getTestDatabase({
-      // todo: rename?
-      key: getTestDatabaseOptions?.databaseDedupeKey,
+      databaseDedupeKey: getTestDatabaseOptions?.databaseDedupeKey,
       params,
     })
 

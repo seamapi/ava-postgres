@@ -23,7 +23,7 @@ export interface TestWorkerFunctions {
 
 export interface SharedWorkerFunctions {
   getTestDatabase: (options: {
-    key?: string
+    databaseDedupeKey?: string
     params?: Jsonifiable
   }) => Promise<{
     connectionDetails: ConnectionDetailsFromWorker
