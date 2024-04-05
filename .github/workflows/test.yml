@@ -8,8 +8,8 @@ jobs:
     name: Run NPM Test
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
-        postgres-version: [13, 14, 15]
+        node-version: [18.x, 20.x]
+        postgres-version: [14, 15, 16]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
