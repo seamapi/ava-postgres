@@ -73,9 +73,31 @@ export class Worker {
           const container = (await this.startContainerPromise).container
           return container.exec(command)
         },
-        dropDatabase: async (databaseName) => {
+        createEmptyDatabase: async () => {
           const { postgresClient } = await this.startContainerPromise
-          await postgresClient.query(`DROP DATABASE ${databaseName}`)
+          const databaseName = getRandomDatabaseName()
+          await postgresClient.query(`CREATE DATABASE ${databaseName}`)
+          return this.getConnectionDetails(databaseName)
+        },
+        createDatabaseFromTemplate: async (templateName) => {
+          const { postgresClient } = await this.startContainerPromise
+          const databaseName = getRandomDatabaseName()
+          await postgresClient.query(
+            `CREATE DATABASE ${databaseName} WITH TEMPLATE ${templateName};`
+          )
+
+          testWorker.teardown(async () => {
+            await this.teardownDatabase(databaseName)
+          })
+
+          return this.getConnectionDetails(databaseName)
+        },
+        convertDatabaseToTemplate: async (databaseName) => {
+          const { postgresClient } = await this.startContainerPromise
+          await postgresClient.query(
+            `ALTER DATABASE ${databaseName} WITH is_template TRUE;`
+          )
+          return { templateName: databaseName }
         },
       },
       rpcChannel
@@ -152,22 +174,28 @@ export class Worker {
         return
       }
 
-      try {
-        await this.forceDisconnectClientsFrom(databaseName!)
-        await postgresClient.query(`DROP DATABASE ${databaseName}`)
-      } catch (error) {
-        if ((error as Error)?.message?.includes("does not exist")) {
-          // Database was likely a nested database and manually dropped by the test worker, ignore
-          return
-        }
-
-        throw error
-      }
+      await this.teardownDatabase(databaseName!)
     })
 
     return {
       connectionDetails: await this.getConnectionDetails(databaseName!),
       beforeTemplateIsBakedResult,
+    }
+  }
+
+  private async teardownDatabase(databaseName: string) {
+    const { postgresClient } = await this.startContainerPromise
+
+    try {
+      await this.forceDisconnectClientsFrom(databaseName!)
+      await postgresClient.query(`DROP DATABASE ${databaseName}`)
+    } catch (error) {
+      if ((error as Error)?.message?.includes("does not exist")) {
+        // Database was likely a nested database and manually dropped by the test worker, ignore
+        return
+      }
+
+      throw error
     }
   }
 

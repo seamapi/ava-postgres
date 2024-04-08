@@ -30,5 +30,11 @@ export interface SharedWorkerFunctions {
     beforeTemplateIsBakedResult: unknown
   }>
   execCommandInContainer: (command: string[]) => Promise<ExecResult>
-  dropDatabase: (databaseName: string) => Promise<void>
+  createEmptyDatabase: () => Promise<ConnectionDetailsFromWorker>
+  createDatabaseFromTemplate: (
+    templateName: string
+  ) => Promise<ConnectionDetailsFromWorker>
+  convertDatabaseToTemplate: (
+    databaseName: string
+  ) => Promise<{ templateName: string }>
 }

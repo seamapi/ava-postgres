@@ -148,46 +148,39 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
 })
 
 test("beforeTemplateIsBaked, get nested database", async (t) => {
-  type DatabaseParams = {
-    type: "foo" | "bar"
-  }
-
-  let nestedDatabaseName: string | undefined = undefined
-
-  const getTestServer = getTestPostgresDatabaseFactory<DatabaseParams>({
+  const getTestDatabase = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
     workerDedupeKey: "beforeTemplateIsBakedHookNestedDatabase",
     beforeTemplateIsBaked: async ({
-      params,
       connection: { pool },
-      beforeTemplateIsBaked,
+      manuallyBuildAdditionalTemplate,
     }) => {
-      if (params.type === "foo") {
-        await pool.query(`CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`)
-        return { createdFoo: true }
-      }
-
       await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
-      const fooDatabase = await beforeTemplateIsBaked({
-        params: { type: "foo" },
-      })
-      t.deepEqual(fooDatabase.beforeTemplateIsBakedResult, { createdFoo: true })
 
-      nestedDatabaseName = fooDatabase.database
+      const fooTemplateBuilder = await manuallyBuildAdditionalTemplate()
+      await fooTemplateBuilder.connection.pool.query(
+        `CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`
+      )
+      const { templateName: fooTemplateName } =
+        await fooTemplateBuilder.finish()
 
-      await t.notThrowsAsync(async () => {
-        await fooDatabase.pool.query(`INSERT INTO "foo" DEFAULT VALUES`)
-      })
-
-      return { createdBar: true }
+      return { fooTemplateName }
     },
   })
 
-  const database = await getTestServer(t, { type: "bar" })
-  t.deepEqual(database.beforeTemplateIsBakedResult, { createdBar: true })
+  const barDatabase = await getTestDatabase(t)
+  t.truthy(barDatabase.beforeTemplateIsBakedResult.fooTemplateName)
 
-  t.false(
-    await doesDatabaseExist(database.pool, nestedDatabaseName!),
-    "Nested database should have been cleaned up after the parent hook completed"
+  const fooDatabase = await getTestDatabase.fromTemplate(
+    t,
+    barDatabase.beforeTemplateIsBakedResult.fooTemplateName
   )
+
+  await t.notThrowsAsync(async () => {
+    await fooDatabase.pool.query('SELECT * FROM "foo"')
+  })
+
+  await t.throwsAsync(async () => {
+    await fooDatabase.pool.query('SELECT * FROM "bar"')
+  })
 })

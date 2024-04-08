@@ -1,8 +1,8 @@
 import type { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
-import { ExecutionContext } from "ava"
-import { ExecResult } from "testcontainers"
-import { BindMode } from "testcontainers/build/types"
+import type { ExecutionContext } from "ava"
+import type { ExecResult } from "testcontainers"
+import type { BindMode } from "testcontainers/build/types"
 
 export interface ConnectionDetails {
   connectionString: string
@@ -92,11 +92,10 @@ export interface GetTestPostgresDatabaseFactoryOptions<
      * })
      * ```
      */
-    beforeTemplateIsBaked: (
-      options: {
-        params: Params
-      } & Pick<GetTestPostgresDatabaseOptions, "databaseDedupeKey">
-    ) => Promise<GetTestPostgresDatabaseResult>
+    manuallyBuildAdditionalTemplate: () => Promise<{
+      connection: ConnectionDetails
+      finish: () => Promise<{ templateName: string }>
+    }>
   }) => Promise<any>
 }
 
@@ -155,14 +154,23 @@ export type GetTestPostgresDatabaseOptions = {
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 type IsNeverType<T> = [T] extends [never] ? true : false
 
+interface BaseGetTestPostgresDatabase {
+  fromTemplate(
+    t: ExecutionContext,
+    templateName: string
+  ): Promise<ConnectionDetails>
+}
+
 export type GetTestPostgresDatabase<Params> = IsNeverType<Params> extends true
-  ? (
+  ? ((
       t: ExecutionContext,
       args?: null,
       options?: GetTestPostgresDatabaseOptions
-    ) => Promise<GetTestPostgresDatabaseResult>
-  : (
+    ) => Promise<GetTestPostgresDatabaseResult>) &
+      BaseGetTestPostgresDatabase
+  : ((
       t: ExecutionContext,
       args: Params,
       options?: GetTestPostgresDatabaseOptions
-    ) => Promise<GetTestPostgresDatabaseResult>
+    ) => Promise<GetTestPostgresDatabaseResult>) &
+      BaseGetTestPostgresDatabase

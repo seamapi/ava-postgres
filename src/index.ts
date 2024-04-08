@@ -12,6 +12,7 @@ import type {
   GetTestPostgresDatabase,
   GetTestPostgresDatabaseFactoryOptions,
   GetTestPostgresDatabaseOptions,
+  GetTestPostgresDatabaseResult,
 } from "./public-types"
 import { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
@@ -104,7 +105,7 @@ export const getTestPostgresDatabaseFactory = <
   Params extends Jsonifiable = never
 >(
   options?: GetTestPostgresDatabaseFactoryOptions<Params>
-) => {
+): GetTestPostgresDatabase<Params> => {
   const initialData: InitialWorkerData = {
     postgresVersion: options?.postgresVersion ?? "14",
     containerOptions: options?.container,
@@ -157,40 +158,27 @@ export const getTestPostgresDatabaseFactory = <
               throw error
             })
 
-            const createdNestedConnections: ConnectionDetails[] = []
             const hookResult = await options.beforeTemplateIsBaked({
               params: params as any,
               connection: connectionDetails,
               containerExec: async (command): Promise<ExecResult> =>
                 rpc.execCommandInContainer(command),
               // This is what allows a consumer to get a "nested" database from within their beforeTemplateIsBaked hook
-              beforeTemplateIsBaked: async (options) => {
-                const { connectionDetails, beforeTemplateIsBakedResult } =
-                  await rpc.getTestDatabase({
-                    params: options.params,
-                    databaseDedupeKey: options.databaseDedupeKey,
-                  })
-
-                const mappedConnection =
+              manuallyBuildAdditionalTemplate: async () => {
+                const connection =
                   mapWorkerConnectionDetailsToConnectionDetails(
-                    connectionDetails
+                    await rpc.createEmptyDatabase()
                   )
 
-                createdNestedConnections.push(mappedConnection)
-
                 return {
-                  ...mappedConnection,
-                  beforeTemplateIsBakedResult,
+                  connection,
+                  finish: async () => {
+                    await teardownConnection(connection)
+                    return rpc.convertDatabaseToTemplate(connection.database)
+                  },
                 }
               },
             })
-
-            await Promise.all(
-              createdNestedConnections.map(async (connection) => {
-                await teardownConnection(connection)
-                await rpc.dropDatabase(connection.database)
-              })
-            )
 
             await teardownConnection(connectionDetails)
 
@@ -226,11 +214,11 @@ export const getTestPostgresDatabaseFactory = <
     }
   })()
 
-  const getTestPostgresDatabase: GetTestPostgresDatabase<Params> = async (
+  const getTestPostgresDatabase = async (
     t: ExecutionContext,
     params: any,
     getTestDatabaseOptions?: GetTestPostgresDatabaseOptions
-  ) => {
+  ): Promise<GetTestPostgresDatabaseResult> => {
     const testDatabaseConnection = await rpc.getTestDatabase({
       databaseDedupeKey: getTestDatabaseOptions?.databaseDedupeKey,
       params,
@@ -251,7 +239,22 @@ export const getTestPostgresDatabaseFactory = <
     }
   }
 
-  return getTestPostgresDatabase
+  getTestPostgresDatabase.fromTemplate = async (
+    t: ExecutionContext,
+    templateName: string
+  ) => {
+    const connection = mapWorkerConnectionDetailsToConnectionDetails(
+      await rpc.createDatabaseFromTemplate(templateName)
+    )
+
+    t.teardown(async () => {
+      await teardownConnection(connection)
+    })
+
+    return connection
+  }
+
+  return getTestPostgresDatabase as any
 }
 
 export * from "./public-types"
