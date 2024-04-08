@@ -106,7 +106,26 @@ export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
 
 export type GetTestPostgresDatabaseOptions = {
   /**
-   * If `getTestPostgresDatabase()` is called multiple times with the same `key` and `params`, the same database is guaranteed to be returned.
+   * By default, `ava-postgres` will create a new database for each test. If you want to share a database between tests, you can use the `databaseDedupeKey` option.
+   * This works across the entire test suite.
+   *
+   * Note that if unique parameters are passed to the `beforeTemplateIsBaked` (`null` in the above example), separate databases will still be created.
+   * @example
+   * ```ts
+   * import test from "ava"
+   *
+   * const getTestPostgresDatabase = getTestPostgresDatabaseFactory({})
+   *
+   * test("foo", async (t) => {
+   *   const connection1 = await getTestPostgresDatabase(t, null, {
+   *     databaseDedupeKey: "foo",
+   *   })
+   *   const connection2 = await getTestPostgresDatabase(t, null, {
+   *     databaseDedupeKey: "foo",
+   *   })
+   *   t.is(connection1.database, connection2.database)
+   * })
+   * ```
    */
   /**
    * By default, `ava-postgres` will create a new database for each test. If you want to share a database between tests, you can use the `databaseDedupeKey` option.
