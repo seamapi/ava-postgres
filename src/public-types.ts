@@ -55,6 +55,11 @@ export interface GetTestPostgresDatabaseFactoryOptions<
     connection: ConnectionDetails
     params: Params
     containerExec: (command: string[]) => Promise<ExecResult>
+    beforeTemplateIsBaked: (
+      options: {
+        params: Params
+      } & Pick<GetTestPostgresDatabaseOptions, "databaseDedupeKey">
+    ) => Promise<GetTestPostgresDatabaseResult>
   }) => Promise<any>
 }
 

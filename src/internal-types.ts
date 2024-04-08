@@ -30,4 +30,5 @@ export interface SharedWorkerFunctions {
     beforeTemplateIsBakedResult: unknown
   }>
   execCommandInContainer: (command: string[]) => Promise<ExecResult>
+  dropDatabase: (databaseName: string) => Promise<void>
 }

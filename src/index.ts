@@ -16,8 +16,7 @@ import type {
 import { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
 import type { ExecutionContext } from "ava"
-import { once } from "node:events"
-import { createBirpc } from "birpc"
+import { BirpcReturn, createBirpc } from "birpc"
 import { ExecResult } from "testcontainers"
 import isPlainObject from "lodash/isPlainObject"
 
@@ -136,57 +135,86 @@ export const getTestPostgresDatabaseFactory = <
   }
 
   let rpcCallback: (data: any) => void
-  const rpc = createBirpc<SharedWorkerFunctions, TestWorkerFunctions>(
-    {
-      runBeforeTemplateIsBakedHook: async (connection, params) => {
-        if (options?.beforeTemplateIsBaked) {
-          const connectionDetails =
-            mapWorkerConnectionDetailsToConnectionDetails(connection)
+  const rpc: BirpcReturn<SharedWorkerFunctions, TestWorkerFunctions> =
+    createBirpc<SharedWorkerFunctions, TestWorkerFunctions>(
+      {
+        runBeforeTemplateIsBakedHook: async (connection, params) => {
+          if (options?.beforeTemplateIsBaked) {
+            const connectionDetails =
+              mapWorkerConnectionDetailsToConnectionDetails(connection)
 
-          // Ignore if the pool is terminated by the shared worker
-          // (This happens in CI for some reason even though we drain the pool first.)
-          connectionDetails.pool.on("error", (error) => {
-            if (
-              error.message.includes(
-                "terminating connection due to administrator command"
+            // Ignore if the pool is terminated by the shared worker
+            // (This happens in CI for some reason even though we drain the pool first.)
+            connectionDetails.pool.on("error", (error) => {
+              if (
+                error.message.includes(
+                  "terminating connection due to administrator command"
+                )
+              ) {
+                return
+              }
+
+              throw error
+            })
+
+            const createdNestedConnections: ConnectionDetails[] = []
+            const hookResult = await options.beforeTemplateIsBaked({
+              params: params as any,
+              connection: connectionDetails,
+              containerExec: async (command): Promise<ExecResult> =>
+                rpc.execCommandInContainer(command),
+              // This is what allows a consumer to get a "nested" database from within their beforeTemplateIsBaked hook
+              beforeTemplateIsBaked: async (options) => {
+                const { connectionDetails, beforeTemplateIsBakedResult } =
+                  await rpc.getTestDatabase({
+                    params: options.params,
+                    databaseDedupeKey: options.databaseDedupeKey,
+                  })
+
+                const mappedConnection =
+                  mapWorkerConnectionDetailsToConnectionDetails(
+                    connectionDetails
+                  )
+
+                createdNestedConnections.push(mappedConnection)
+
+                return {
+                  ...mappedConnection,
+                  beforeTemplateIsBakedResult,
+                }
+              },
+            })
+
+            await Promise.all(
+              createdNestedConnections.map(async (connection) => {
+                await teardownConnection(connection)
+                await rpc.dropDatabase(connection.database)
+              })
+            )
+
+            await teardownConnection(connectionDetails)
+
+            if (hookResult && !isSerializable(hookResult)) {
+              throw new TypeError(
+                "Return value of beforeTemplateIsBaked() hook could not be serialized. Make sure it returns only JSON-serializable values."
               )
-            ) {
-              return
             }
 
-            throw error
-          })
-
-          const hookResult = await options.beforeTemplateIsBaked({
-            params: params as any,
-            connection: connectionDetails,
-            containerExec: async (command): Promise<ExecResult> =>
-              rpc.execCommandInContainer(command),
-          })
-
-          await teardownConnection(connectionDetails)
-
-          if (hookResult && !isSerializable(hookResult)) {
-            throw new TypeError(
-              "Return value of beforeTemplateIsBaked() hook could not be serialized. Make sure it returns only JSON-serializable values."
-            )
+            return hookResult
           }
-
-          return hookResult
-        }
+        },
       },
-    },
-    {
-      post: async (data) => {
-        const worker = await workerPromise
-        await worker.available
-        worker.publish(data)
-      },
-      on: (data) => {
-        rpcCallback = data
-      },
-    }
-  )
+      {
+        post: async (data) => {
+          const worker = await workerPromise
+          await worker.available
+          worker.publish(data)
+        },
+        on: (data) => {
+          rpcCallback = data
+        },
+      }
+    )
 
   // Automatically cleaned up by AVA since each test file runs in a separate worker
   const _messageHandlerPromise = (async () => {

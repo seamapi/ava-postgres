@@ -1,6 +1,7 @@
 import test from "ava"
 import { getTestPostgresDatabaseFactory } from "~/index"
 import { countDatabaseTemplates } from "./utils/count-database-templates"
+import { doesDatabaseExist } from "./utils/does-database-exist"
 
 test("beforeTemplateIsBaked", async (t) => {
   let wasHookCalled = false
@@ -143,5 +144,50 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
     {
       message: /could not be serialized/,
     }
+  )
+})
+
+test("beforeTemplateIsBaked, get nested database", async (t) => {
+  type DatabaseParams = {
+    type: "foo" | "bar"
+  }
+
+  let nestedDatabaseName: string | undefined = undefined
+
+  const getTestServer = getTestPostgresDatabaseFactory<DatabaseParams>({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    workerDedupeKey: "beforeTemplateIsBakedHookNestedDatabase",
+    beforeTemplateIsBaked: async ({
+      params,
+      connection: { pool },
+      beforeTemplateIsBaked,
+    }) => {
+      if (params.type === "foo") {
+        await pool.query(`CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`)
+        return { createdFoo: true }
+      }
+
+      await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
+      const fooDatabase = await beforeTemplateIsBaked({
+        params: { type: "foo" },
+      })
+      t.deepEqual(fooDatabase.beforeTemplateIsBakedResult, { createdFoo: true })
+
+      nestedDatabaseName = fooDatabase.database
+
+      await t.notThrowsAsync(async () => {
+        await fooDatabase.pool.query(`INSERT INTO "foo" DEFAULT VALUES`)
+      })
+
+      return { createdBar: true }
+    },
+  })
+
+  const database = await getTestServer(t, { type: "bar" })
+  t.deepEqual(database.beforeTemplateIsBakedResult, { createdBar: true })
+
+  t.false(
+    await doesDatabaseExist(database.pool, nestedDatabaseName!),
+    "Nested database should have been cleaned up after the parent hook completed"
   )
 })

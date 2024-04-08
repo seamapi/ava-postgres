@@ -73,6 +73,10 @@ export class Worker {
           const container = (await this.startContainerPromise).container
           return container.exec(command)
         },
+        dropDatabase: async (databaseName) => {
+          const { postgresClient } = await this.startContainerPromise
+          await postgresClient.query(`DROP DATABASE ${databaseName}`)
+        },
       },
       rpcChannel
     )
@@ -148,8 +152,17 @@ export class Worker {
         return
       }
 
-      await this.forceDisconnectClientsFrom(databaseName!)
-      await postgresClient.query(`DROP DATABASE ${databaseName}`)
+      try {
+        await this.forceDisconnectClientsFrom(databaseName!)
+        await postgresClient.query(`DROP DATABASE ${databaseName}`)
+      } catch (error) {
+        if ((error as Error)?.message?.includes("does not exist")) {
+          // Database was likely a nested database and manually dropped by the test worker, ignore
+          return
+        }
+
+        throw error
+      }
     })
 
     return {
