@@ -147,10 +147,10 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
   )
 })
 
-test("beforeTemplateIsBaked, get nested database", async (t) => {
+test("beforeTemplateIsBaked with manual template build", async (t) => {
   const getTestDatabase = getTestPostgresDatabaseFactory({
     postgresVersion: process.env.POSTGRES_VERSION,
-    workerDedupeKey: "beforeTemplateIsBakedHookNestedDatabase",
+    workerDedupeKey: "beforeTemplateIsBakedHookManualTemplateBuild",
     beforeTemplateIsBaked: async ({
       connection: { pool },
       manuallyBuildAdditionalTemplate,
@@ -178,7 +178,7 @@ test("beforeTemplateIsBaked, get nested database", async (t) => {
 
   await t.notThrowsAsync(async () => {
     await fooDatabase.pool.query('SELECT * FROM "foo"')
-  })
+  }, "foo table should exist on database manually created from template")
 
   await t.throwsAsync(async () => {
     await fooDatabase.pool.query('SELECT * FROM "bar"')

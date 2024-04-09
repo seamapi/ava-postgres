@@ -59,36 +59,51 @@ export interface GetTestPostgresDatabaseFactoryOptions<
     params: Params
     containerExec: (command: string[]) => Promise<ExecResult>
     /**
+     * In some cases, if you do extensive setup in your `beforeTemplateIsBaked` hook, you might want to obtain a separate, additional database within it if your application uses several databases for different purposes.
      *
-     * In some cases, if you do extensive setup in your `beforeTemplateIsBaked` hook, you might want to obtain a separate, additional database within it if your application uses several databases for different purposes. This is possible by using the passed `beforeTemplateIsBaked` to your hook callback.
-     * Be very careful when using this to avoid infinite loops.
      * @example
      * ```ts
-     * type DatabaseParams = {
-     *   type: "foo" | "bar"
-     * }
-
-     * const getTestServer = getTestPostgresDatabaseFactory<DatabaseParams>({
+     * import test from "ava"
+     *
+     * const getTestDatabase = getTestPostgresDatabaseFactory<DatabaseParams>({
      *   beforeTemplateIsBaked: async ({
      *     params,
      *     connection: { pool },
-     *     beforeTemplateIsBaked,
+     *     manuallyBuildAdditionalTemplate,
      *   }) => {
-     *     if (params.type === "foo") {
-     *       await pool.query(`CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`)
-     *       // Important: return early to avoid infinite loop
-     *       return
-     *     }
-
      *     await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
-     *     // This created database will be torn down at the end of the top-level `beforeTemplateIsBaked` call
-     *     const fooDatabase = await beforeTemplateIsBaked({
-     *       params: { type: "foo" },
-     *     })
-
-     *     // This works now
-     *     await fooDatabase.pool.query(`INSERT INTO "foo" DEFAULT VALUES`)
+     *
+     *     const fooTemplateBuilder = await manuallyBuildAdditionalTemplate()
+     *     await fooTemplateBuilder.connection.pool.query(
+     *       `CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`
+     *     )
+     *     const { templateName: fooTemplateName } = await fooTemplateBuilder.finish()
+     *
+     *     return { fooTemplateName }
      *   },
+     * })
+     *
+     * test("foo", async (t) => {
+     *   const barDatabase = await getTestDatabase({ type: "bar" })
+     *
+     *   // the "bar" database has the "bar" table...
+     *   await t.notThrowsAsync(async () => {
+     *     await barDatabase.pool.query(`SELECT * FROM "bar"`)
+     *   })
+     *
+     *   // ...but not the "foo" table...
+     *   await t.throwsAsync(async () => {
+     *     await barDatabase.pool.query(`SELECT * FROM "foo"`)
+     *   })
+     *
+     *   // ...and we can obtain a separate database with the "foo" table
+     *   const fooDatabase = await getTestDatabase.fromTemplate(
+     *     t,
+     *     barDatabase.beforeTemplateIsBakedResult.fooTemplateName
+     *   )
+     *   await t.notThrowsAsync(async () => {
+     *     await fooDatabase.pool.query(`SELECT * FROM "foo"`)
+     *   })
      * })
      * ```
      */
@@ -104,28 +119,6 @@ export interface GetTestPostgresDatabaseResult extends ConnectionDetails {
 }
 
 export type GetTestPostgresDatabaseOptions = {
-  /**
-   * By default, `ava-postgres` will create a new database for each test. If you want to share a database between tests, you can use the `databaseDedupeKey` option.
-   * This works across the entire test suite.
-   *
-   * Note that if unique parameters are passed to the `beforeTemplateIsBaked` (`null` in the above example), separate databases will still be created.
-   * @example
-   * ```ts
-   * import test from "ava"
-   *
-   * const getTestPostgresDatabase = getTestPostgresDatabaseFactory({})
-   *
-   * test("foo", async (t) => {
-   *   const connection1 = await getTestPostgresDatabase(t, null, {
-   *     databaseDedupeKey: "foo",
-   *   })
-   *   const connection2 = await getTestPostgresDatabase(t, null, {
-   *     databaseDedupeKey: "foo",
-   *   })
-   *   t.is(connection1.database, connection2.database)
-   * })
-   * ```
-   */
   /**
    * By default, `ava-postgres` will create a new database for each test. If you want to share a database between tests, you can use the `databaseDedupeKey` option.
    * This works across the entire test suite.
