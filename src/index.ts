@@ -30,6 +30,7 @@ const isSerializable = (obj: Record<any, any>): boolean => {
       typeof val === "string" ||
       typeof val === "boolean" ||
       typeof val === "number" ||
+      val.constructor === Date ||
       Array.isArray(val) ||
       isPlainObject(val)
     )
