@@ -1,7 +1,6 @@
 import test from "ava"
 import { getTestPostgresDatabaseFactory } from "~/index"
 import { countDatabaseTemplates } from "./utils/count-database-templates"
-import { doesDatabaseExist } from "./utils/does-database-exist"
 
 test("beforeTemplateIsBaked", async (t) => {
   let wasHookCalled = false
