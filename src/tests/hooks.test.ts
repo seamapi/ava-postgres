@@ -145,3 +145,41 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
     }
   )
 })
+
+test("beforeTemplateIsBaked with manual template build", async (t) => {
+  const getTestDatabase = getTestPostgresDatabaseFactory({
+    postgresVersion: process.env.POSTGRES_VERSION,
+    workerDedupeKey: "beforeTemplateIsBakedHookManualTemplateBuild",
+    beforeTemplateIsBaked: async ({
+      connection: { pool },
+      manuallyBuildAdditionalTemplate,
+    }) => {
+      await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
+
+      const fooTemplateBuilder = await manuallyBuildAdditionalTemplate()
+      await fooTemplateBuilder.connection.pool.query(
+        `CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`
+      )
+      const { templateName: fooTemplateName } =
+        await fooTemplateBuilder.finish()
+
+      return { fooTemplateName }
+    },
+  })
+
+  const barDatabase = await getTestDatabase(t)
+  t.truthy(barDatabase.beforeTemplateIsBakedResult.fooTemplateName)
+
+  const fooDatabase = await getTestDatabase.fromTemplate(
+    t,
+    barDatabase.beforeTemplateIsBakedResult.fooTemplateName
+  )
+
+  await t.notThrowsAsync(async () => {
+    await fooDatabase.pool.query('SELECT * FROM "foo"')
+  }, "foo table should exist on database manually created from template")
+
+  await t.throwsAsync(async () => {
+    await fooDatabase.pool.query('SELECT * FROM "bar"')
+  })
+})

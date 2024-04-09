@@ -1,8 +1,8 @@
 import type { Pool } from "pg"
 import type { Jsonifiable } from "type-fest"
-import { ExecutionContext } from "ava"
-import { ExecResult } from "testcontainers"
-import { BindMode } from "testcontainers/build/types"
+import type { ExecutionContext } from "ava"
+import type { ExecResult } from "testcontainers"
+import type { BindMode } from "testcontainers/build/types"
 
 export interface ConnectionDetails {
   connectionString: string
@@ -58,6 +58,59 @@ export interface GetTestPostgresDatabaseFactoryOptions<
     connection: ConnectionDetails
     params: Params
     containerExec: (command: string[]) => Promise<ExecResult>
+    /**
+     * In some cases, if you do extensive setup in your `beforeTemplateIsBaked` hook, you might want to obtain a separate, additional database within it if your application uses several databases for different purposes.
+     *
+     * @example
+     * ```ts
+     * import test from "ava"
+     *
+     * const getTestDatabase = getTestPostgresDatabaseFactory<DatabaseParams>({
+     *   beforeTemplateIsBaked: async ({
+     *     params,
+     *     connection: { pool },
+     *     manuallyBuildAdditionalTemplate,
+     *   }) => {
+     *     await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
+     *
+     *     const fooTemplateBuilder = await manuallyBuildAdditionalTemplate()
+     *     await fooTemplateBuilder.connection.pool.query(
+     *       `CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`
+     *     )
+     *     const { templateName: fooTemplateName } = await fooTemplateBuilder.finish()
+     *
+     *     return { fooTemplateName }
+     *   },
+     * })
+     *
+     * test("foo", async (t) => {
+     *   const barDatabase = await getTestDatabase({ type: "bar" })
+     *
+     *   // the "bar" database has the "bar" table...
+     *   await t.notThrowsAsync(async () => {
+     *     await barDatabase.pool.query(`SELECT * FROM "bar"`)
+     *   })
+     *
+     *   // ...but not the "foo" table...
+     *   await t.throwsAsync(async () => {
+     *     await barDatabase.pool.query(`SELECT * FROM "foo"`)
+     *   })
+     *
+     *   // ...and we can obtain a separate database with the "foo" table
+     *   const fooDatabase = await getTestDatabase.fromTemplate(
+     *     t,
+     *     barDatabase.beforeTemplateIsBakedResult.fooTemplateName
+     *   )
+     *   await t.notThrowsAsync(async () => {
+     *     await fooDatabase.pool.query(`SELECT * FROM "foo"`)
+     *   })
+     * })
+     * ```
+     */
+    manuallyBuildAdditionalTemplate: () => Promise<{
+      connection: ConnectionDetails
+      finish: () => Promise<{ templateName: string }>
+    }>
   }) => Promise<any>
 }
 
@@ -94,14 +147,23 @@ export type GetTestPostgresDatabaseOptions = {
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 type IsNeverType<T> = [T] extends [never] ? true : false
 
+interface BaseGetTestPostgresDatabase {
+  fromTemplate(
+    t: ExecutionContext,
+    templateName: string
+  ): Promise<ConnectionDetails>
+}
+
 export type GetTestPostgresDatabase<Params> = IsNeverType<Params> extends true
-  ? (
+  ? ((
       t: ExecutionContext,
       args?: null,
       options?: GetTestPostgresDatabaseOptions
-    ) => Promise<GetTestPostgresDatabaseResult>
-  : (
+    ) => Promise<GetTestPostgresDatabaseResult>) &
+      BaseGetTestPostgresDatabase
+  : ((
       t: ExecutionContext,
       args: Params,
       options?: GetTestPostgresDatabaseOptions
-    ) => Promise<GetTestPostgresDatabaseResult>
+    ) => Promise<GetTestPostgresDatabaseResult>) &
+      BaseGetTestPostgresDatabase

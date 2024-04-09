@@ -148,6 +148,55 @@ This works across the entire test suite.
 
 Note that if unique parameters are passed to the `beforeTemplateIsBaked` (`null` in the above example), separate databases will still be created.
 
+### Manual template creation
+
+In some cases, if you do extensive setup in your `beforeTemplateIsBaked` hook, you might want to obtain a separate, additional database within it if your application uses several databases for different purposes. This is possible by using the `manuallyBuildAdditionalTemplate()` function passed to your hook callback:
+
+```ts
+import test from "ava"
+
+const getTestDatabase = getTestPostgresDatabaseFactory<DatabaseParams>({
+  beforeTemplateIsBaked: async ({
+    params,
+    connection: { pool },
+    manuallyBuildAdditionalTemplate,
+  }) => {
+    await pool.query(`CREATE TABLE "bar" ("id" SERIAL PRIMARY KEY)`)
+
+    const fooTemplateBuilder = await manuallyBuildAdditionalTemplate()
+    await fooTemplateBuilder.connection.pool.query(
+      `CREATE TABLE "foo" ("id" SERIAL PRIMARY KEY)`
+    )
+    const { templateName: fooTemplateName } = await fooTemplateBuilder.finish()
+
+    return { fooTemplateName }
+  },
+})
+
+test("foo", async (t) => {
+  const barDatabase = await getTestDatabase({ type: "bar" })
+
+  // the "bar" database has the "bar" table...
+  await t.notThrowsAsync(async () => {
+    await barDatabase.pool.query(`SELECT * FROM "bar"`)
+  })
+
+  // ...but not the "foo" table...
+  await t.throwsAsync(async () => {
+    await barDatabase.pool.query(`SELECT * FROM "foo"`)
+  })
+
+  // ...and we can obtain a separate database with the "foo" table
+  const fooDatabase = await getTestDatabase.fromTemplate(
+    t,
+    barDatabase.beforeTemplateIsBakedResult.fooTemplateName
+  )
+  await t.notThrowsAsync(async () => {
+    await fooDatabase.pool.query(`SELECT * FROM "foo"`)
+  })
+})
+```
+
 ### Bind mounts & `exec`ing in the container
 
 `ava-postgres` uses [testcontainers](https://www.npmjs.com/package/testcontainers) under the hood to manage the Postgres container.
