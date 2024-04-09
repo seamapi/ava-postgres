@@ -197,8 +197,6 @@ test("foo", async (t) => {
 })
 ```
 
-Although it's not shown in the above example, because of `ava-postgres`'s automatic de-duping by parameter combinations, any returned template name is "linked" to the parameters passed to the `getTestDatabase()` function.
-
 ### Bind mounts & `exec`ing in the container
 
 `ava-postgres` uses [testcontainers](https://www.npmjs.com/package/testcontainers) under the hood to manage the Postgres container.
