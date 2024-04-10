@@ -125,12 +125,28 @@ test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (
 })
 
 test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
-  const getTestServer = getTestPostgresDatabaseFactory({
+  type HookReturn = {
+    type: "function" | "date" | null
+  }
+
+  const getTestServer = getTestPostgresDatabaseFactory<HookReturn>({
     postgresVersion: process.env.POSTGRES_VERSION,
     workerDedupeKey: "beforeTemplateIsBakedHookNonSerializable",
-    beforeTemplateIsBaked: async () => {
+    beforeTemplateIsBaked: async ({ params: { type } }) => {
+      if (type === "function") {
+        return {
+          foo: () => "bar",
+        }
+      }
+
+      if (type === "date") {
+        return {
+          foo: new Date(),
+        }
+      }
+
       return {
-        foo: () => "bar",
+        foo: null,
       }
     },
   })
@@ -138,12 +154,24 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
   // Should throw error with clear message
   await t.throwsAsync(
     async () => {
-      await getTestServer(t)
+      await getTestServer(t, { type: "function" })
     },
     {
       message: /could not be serialized/,
     }
   )
+
+  // Can return a date
+  const { beforeTemplateIsBakedResult } = await getTestServer(t, {
+    type: "date",
+  })
+  t.true(beforeTemplateIsBakedResult.foo instanceof Date)
+
+  // Can return null
+  const { beforeTemplateIsBakedResult: result } = await getTestServer(t, {
+    type: null,
+  })
+  t.is(result.foo, null)
 })
 
 test("beforeTemplateIsBaked with manual template build", async (t) => {
