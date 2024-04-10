@@ -126,15 +126,27 @@ test("beforeTemplateIsBaked (propagates error that isn't serializable)", async (
 
 test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
   type HookReturn = {
-    type: "function" | "date"
+    type: "function" | "date" | null
   }
 
   const getTestServer = getTestPostgresDatabaseFactory<HookReturn>({
     postgresVersion: process.env.POSTGRES_VERSION,
     workerDedupeKey: "beforeTemplateIsBakedHookNonSerializable",
     beforeTemplateIsBaked: async ({ params: { type } }) => {
+      if (type === "function") {
+        return {
+          foo: () => "bar",
+        }
+      }
+
+      if (type === "date") {
+        return {
+          foo: new Date(),
+        }
+      }
+
       return {
-        foo: type === "function" ? () => "bar" : new Date(),
+        foo: null,
       }
     },
   })
@@ -154,6 +166,12 @@ test("beforeTemplateIsBaked (result isn't serializable)", async (t) => {
     type: "date",
   })
   t.true(beforeTemplateIsBakedResult.foo instanceof Date)
+
+  // Can return null
+  const { beforeTemplateIsBakedResult: result } = await getTestServer(t, {
+    type: null,
+  })
+  t.is(result.foo, null)
 })
 
 test("beforeTemplateIsBaked with manual template build", async (t) => {
