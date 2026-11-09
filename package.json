@@ -47,7 +47,7 @@
   "dependencies": {
     "async-mutex": "0.4.0",
     "birpc": "0.2.17",
-    "lodash": "4.17.21",
+    "lodash": "4.18.1",
     "nanoid": "5.1.16",
     "object-hash": "3.0.0",
     "pg": "8.8.0"
