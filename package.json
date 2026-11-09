@@ -34,7 +34,7 @@
     "@types/pg": "8.6.5",
     "ava": "5.1.0",
     "ava-typescript-worker": "1.1.0",
-    "esbuild": "0.15.6",
+    "esbuild": "0.25.0",
     "esbuild-register": "3.3.3",
     "execa": "6.1.0",
     "prettier": "2.7.1",
