@@ -52,6 +52,9 @@
     "object-hash": "3.0.0",
     "pg": "8.8.0"
   },
+  "resolutions": {
+    "normalize-package-data/semver": "5.7.2"
+  },
   "peerDependencies": {
     "ava": ">=4.3.3",
     "testcontainers": ">=10.0.0"
